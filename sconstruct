@@ -1,0 +1,268 @@
+import os
+
+# LIBRARY FILES
+sourcefiles = [ 'duat' ]
+
+installheaders = [ 'duat/9p' ]
+
+# OPTIONS
+
+opts = Options()
+opts.Add(BoolOption('debug', 'build with debug information', False))
+opts.Add(BoolOption('debugMemory', 'use alternative code fragments that will work with valgrind', False))
+opts.Add(BoolOption('optimise', 'default optimisations', True))
+opts.Add(BoolOption('optimiseLinking', 'special linker optimisations', True))
+opts.Add(BoolOption('useAssembly', 'use assembler code (usually to bypass the default C library)', True))
+
+opts.Add('arch', 'target architecture', os.uname()[4].lower())
+opts.Add('computerVendor', 'computer vendor', 'unknown')
+opts.Add('ostype', 'OS type', os.uname()[0].lower())
+opts.Add('cctype', 'toolchain type', 'gnu')
+
+opts.Add('libdir', 'libdir base name (i.e. lib, lib32, lib64, etc)', 'lib')
+opts.Add('prefix', 'prefix (static libs are fine in /usr)', '/usr/')
+opts.Add('destdir', 'extra installation prefix', '')
+
+if 'CFLAGS' in os.environ:
+  opts.Add('cflags', 'additional compiler flags', os.environ['CFLAGS'])
+else:
+  opts.Add('cflags', 'additional compiler flags', '')
+
+if 'LDFLAGS' in os.environ:
+  opts.Add('ldflags', 'additional linker flags', os.environ['LDFLAGS'])
+else:
+  opts.Add('ldflags', 'additional linker flags', '')
+
+if 'CHOST' in os.environ:
+  opts.Add('targetCHOST', 'target CHOST', os.environ['CHOST'])
+else:
+  opts.Add('targetCHOST', 'additional linker flags',
+    ARGUMENTS.get('arch', os.uname()[4].lower()) + '-' +
+    ARGUMENTS.get('computerVendor', 'unknown') + '-' +
+    ARGUMENTS.get('ostype', os.uname()[0].lower()) + '-' +
+    ARGUMENTS.get('cctype', 'gnu'))
+
+
+env = Environment(options = opts)
+env.Append (CFLAGS = env['cflags'])
+env.Append (LINKFLAGS = env['ldflags'])
+
+Help(opts.GenerateHelpText(env))
+
+debug           = env['debug']
+optimise        = env['optimise']
+optimiseLinking = env['optimiseLinking']
+useAssembly     = env['useAssembly']
+
+debugMemory     = env['debugMemory']
+
+# ACTUAL SCRIPT
+
+arch            = env['arch']
+computerVendor  = env['computerVendor']
+ostype          = env['ostype']
+cctype          = env['cctype']
+
+
+# install directories
+
+libdir          = env['destdir'] + env['prefix'] + env['libdir'] + '/'
+pkgconfigpath   = libdir + 'pkgconfig/'
+includedir      = env['destdir'] + env['prefix'] + 'include/duat/'
+# os.environ['PKG_CONFIG_PATH']
+
+##############
+try:
+  os.mkdir ('build')
+  print ('build directory created')
+except:
+  print ('build directory existed')
+
+def normalise(str):
+  return str.replace(' ', '').replace('_', '-')
+
+
+def pathPermutateVendor(prefix):
+  global computerVendor
+  return [ normalise(prefix + computerVendor + '/'),
+           normalise(prefix) ]
+
+def pathPermutateCC(prefix):
+  global cctype
+  return pathPermutateVendor(prefix + cctype + '/') +\
+         pathPermutateVendor(prefix)
+
+def pathPermutateArch(prefix):
+  global arch
+  return pathPermutateCC(prefix + arch + '/') +\
+         pathPermutateCC(prefix)
+
+def pathPermutateOS(prefix):
+  global ostype
+  return pathPermutateArch(prefix + ostype + '/') +\
+         pathPermutateArch(prefix) +\
+         pathPermutateArch(prefix + 'posix/') +\
+         pathPermutateArch(prefix + 'generic/')
+
+def pathPermutateValgrind(prefix):
+  global debugMemory
+  if debugMemory:
+    return pathPermutateOS(prefix + 'valgrind/') + pathPermutateOS(prefix)
+  else:
+    return pathPermutateOS(prefix)
+
+def pathPermutateDebug():
+  global debug
+  if debug:
+    return pathPermutateValgrind('debug/') + pathPermutateValgrind('')
+  else:
+    return pathPermutateValgrind('')
+
+def pathPermutate():
+  return pathPermutateDebug()
+
+if debugMemory:
+  useAssembly = False
+  debug = True
+
+if debug:
+  optimiseLinking = False
+  optimise = False
+
+paths = pathPermutate()
+
+print 'max path: ' + normalise(ostype + '/' + arch + '/' + cctype + '/' + computerVendor + '/');
+
+codepreference = [ 'c' ]
+
+if useAssembly:
+  codepreference = [ 'S', 's' ]
+
+def fileexists(name):
+  try:
+    os.stat(name)
+    return True
+  except:
+    return False
+
+
+def haveasm(name):
+  global paths, useAssembly
+
+  if not useAssembly:
+    return False
+
+  for i in paths:
+    if fileexists('src/' + i + name + '.S') or fileexists('src/' + i + name + '.s'):
+      return True
+
+  return False
+
+def findsource(name):
+  global codepreference, paths
+  for l in paths:
+    for i in codepreference:
+      n = 'src/' + l + name + '.' + i
+      if fileexists(n):
+        return n
+
+  return False
+
+def findheader(name):
+  global paths
+  for l in paths:
+    n = 'include/' + l + name + '.h'
+    if fileexists(n):
+      return n
+
+  return False
+
+def writepkgconfig():
+  return False
+
+def standalone():
+  global needforstandalone
+
+  result = True
+
+  for i in needforstandalone:
+    if not haveasm(i):
+      print 'missing assembly code: ' + i
+      result = False
+    else:
+      print 'have assembly code: ' + i
+
+  return result
+
+for i in paths:
+  if fileexists('include/' + i):
+    env.Append (CPPPATH = [ '#include/' + i ])
+
+env.Append(LIBPATH = '.', CFLAGS='--std=c99 -Wall -pedantic')
+
+if debug:
+  env.Append(CFLAGS='-g')
+
+if optimise:
+  env.Append(CFLAGS='-O2', LINKFLAGS='-Wl,-s')
+
+if optimiseLinking:
+  env.Append(LINKFLAGS='-Wl,-x -Wl,--gc-sections -Wl,--sort-common')
+  if ostype != 'darwin':
+    env.Append(LINKFLAGS='-Wl,-z,noexecstack -Wl,-z,norelro')
+
+# adjust linker/compiler flags in pkgconfig file
+
+file = open('./libduat.pc', "r")
+
+lines = file.readlines()
+
+file.close()
+
+file = open('./build/libduat.pc', "w")
+
+mod = []
+for l in lines:
+  s = ""
+  if "Libs:" in l:
+    s = 'Libs: -lduat ' + str(env['LINKFLAGS'])  + '\n'
+  elif "Cflags" in l:
+    s = 'Cflags: ' + str(env['CFLAGS']) + '\n'
+  else:
+    s = str(l)
+  file.write(s)
+
+file.close()
+
+
+sf = []
+
+for i in sourcefiles:
+  sf += [ findsource(i) ]
+  if haveasm(i):
+    n = findsource(i + '-highlevel');
+    if n:
+      sf += [ n ]
+
+x = env.StaticLibrary('duat', sf)
+env.Alias ('library', x)
+env.Install (libdir, x)
+
+import glob
+testsource = glob.glob('tests/*.c');
+
+tenv = env.Clone()
+tenv.Append(LIBS = ['duat'])
+
+for i in testsource:
+  tenv.Program(i)
+
+for i in installheaders:
+  x = findheader(i)
+  if x:
+    env.Install (includedir, x);
+
+env.Install(pkgconfigpath, 'build/libduat.pc')
+env.Alias('pkg-config', pkgconfigpath)
+
+env.Alias('install', [ 'pkg-config', libdir, includedir ])

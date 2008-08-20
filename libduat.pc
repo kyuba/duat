@@ -1,0 +1,8 @@
+Name: libduat
+Description: 9P I/O library
+Version: 1
+URL: http://kyuba.org/
+Requires:
+Conflicts:
+Libs:
+Cflags:
