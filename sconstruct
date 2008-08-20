@@ -1,7 +1,7 @@
 import os
 
 # LIBRARY FILES
-sourcefiles = [ 'duat' ]
+sourcefiles = [ '9p' ]
 
 installheaders = [ 'duat/9p' ]
 
@@ -136,7 +136,7 @@ print 'max path: ' + normalise(ostype + '/' + arch + '/' + cctype + '/' + comput
 codepreference = [ 'c' ]
 
 if useAssembly:
-  codepreference = [ 'S', 's' ]
+  codepreference += [ 'S', 's' ]
 
 def fileexists(name):
   try:
@@ -179,20 +179,6 @@ def findheader(name):
 
 def writepkgconfig():
   return False
-
-def standalone():
-  global needforstandalone
-
-  result = True
-
-  for i in needforstandalone:
-    if not haveasm(i):
-      print 'missing assembly code: ' + i
-      result = False
-    else:
-      print 'have assembly code: ' + i
-
-  return result
 
 for i in paths:
   if fileexists('include/' + i):
