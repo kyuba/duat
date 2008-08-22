@@ -39,6 +39,42 @@
 #if !defined(DUAT_9P_H)
 #define DUAT_9P_H
 
+#include <curie/int.h>
+#include <curie/io.h>
 
+enum duat_9p_connection_version {
+    duat_9p_version_9p2000       = 0,
+    duat_9p_version_9p2000_dot_u = 1
+};
+
+struct duat_io {
+    struct io *in, *out;
+
+    enum duat_9p_connection_version version;
+
+    void (*auth)();
+    void (*attach)();
+    void (*error)();
+    void (*flush)();
+    void (*walk)();
+    void (*open)();
+    void (*create)();
+    void (*read)();
+    void (*write)();
+    void (*clunk)();
+    void (*remove)();
+    void (*stat)();
+    void (*wstat)();
+};
+
+struct duat_io *duat_open_io (struct io *, struct io *);
+
+#define duat_open_io_fd(in,out) duat_open_io (io_open ((in)), io_open((out)))
+#define duat_open_stdio() duat_open_io_fd(0, 1)
+
+void duat_close_io (struct duat_io *);
+
+void multiplex_duat ();
+void multiplex_add_duat (struct duat_io *, void *);
 
 #endif

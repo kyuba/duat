@@ -1,4 +1,4 @@
-import os
+import os, subprocess
 
 # LIBRARY FILES
 sourcefiles = [ '9p' ]
@@ -196,6 +196,8 @@ if optimiseLinking:
   env.Append(LINKFLAGS='-Wl,-x -Wl,--gc-sections -Wl,--sort-common')
   if ostype != 'darwin':
     env.Append(LINKFLAGS='-Wl,-z,noexecstack -Wl,-z,norelro')
+
+env.MergeFlags (subprocess.Popen(['pkg-config', '--cflags', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
 
 # adjust linker/compiler flags in pkgconfig file
 
