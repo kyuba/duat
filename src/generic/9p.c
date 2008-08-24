@@ -201,6 +201,9 @@ static int_16 tolew (unsigned char *p, int_16 n) {
     return res.i;
 }
 
+static char *pop_string (unsigned char *b, int_32 *i, int_32 length) {
+}
+
 static unsigned int pop_message (unsigned char *b, int_32 length,
                                  struct duat_9p_io *io, void *d) {
     enum request_code code = (enum request_code)(b[4]);
@@ -208,8 +211,52 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     int_32 i = 7;
 
     switch (code) {
+        case Tversion:
+            if (length > 13)
+            {
+                int_32 msize = popl (b + 7);
+                int_16 slen  = popd (b + 11);
+
+                if ((slen + 13) < length)
+                {
+                    return length;
+                }
+
+                duat_9p_reply_error (io, tag, "Message too short.");
+                return 0;
+            }
+
+            duat_9p_reply_error (io, tag, "Message too short.");
+            return 0;
+        case Rversion:
+        case Tauth:
+        case Rauth:
+        case Tattach:
+        case Rattach:
+        case Rerror:
+        case Tflush:
+        case Rflush:
+        case Twalk:
+        case Rwalk:
+        case Topen:
+        case Ropen:
+        case Tcreate:
+        case Rcreate:
+        case Tread:
+        case Rread:
+        case Twrite:
+        case Rwrite:
+        case Tclunk:
+        case Rclunk:
+        case Tremove:
+        case Rremove:
+        case Tstat:
+        case Rstat:
+        case Twstat:
+        case Rwstat:
         default:
             /* bad/unrecognised message */
+            duat_9p_reply_error (io, tag, "Function not implemented.");
             io_close (io->in);
     }
 
