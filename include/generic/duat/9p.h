@@ -54,32 +54,38 @@ struct duat_io {
 
     enum duat_9p_connection_version version;
 
-    char * (*Tauth)();
-    char * (*Tattach)();
-    char * (*Tflush)();
-    char * (*Twalk)();
-    char * (*Topen)();
-    char * (*Tcreate)();
-    char * (*Tread)();
-    char * (*Twrite)();
-    char * (*Tclunk)(int_32);
-    char * (*Tremove)();
-    char * (*Tstat)();
-    char * (*Twstat)();
+    void (*Tauth)   (int_16);
+    void (*Tattach) (int_16);
+    void (*Tflush)  (int_16);
+    void (*Twalk)   (int_16);
+    void (*Topen)   (int_16);
+    void (*Tcreate) (int_16);
+    void (*Tread)   (int_16);
+    void (*Twrite)  (int_16);
+    void (*Tclunk)  (int_16);
+    void (*Tremove) (int_16);
+    void (*Tstat)   (int_16);
+    void (*Twstat)  (int_16);
 
-    void (*Rauth)();
-    void (*Rattach)();
-    void (*Rerror)();
-    void (*Rflush)();
-    void (*Rwalk)();
-    void (*Ropen)();
-    void (*Rcreate)();
-    void (*Rread)();
-    void (*Rwrite)();
-    void (*Rclunk)();
-    void (*Rremove)();
-    void (*Rstat)();
-    void (*Rwstat)();
+    void (*Rauth)   ();
+    void (*Rattach) ();
+    void (*Rerror)  ();
+    void (*Rflush)  ();
+    void (*Rwalk)   ();
+    void (*Ropen)   ();
+    void (*Rcreate) ();
+    void (*Rread)   ();
+    void (*Rwrite)  ();
+    void (*Rclunk)  ();
+    void (*Rremove) ();
+    void (*Rstat)   ();
+    void (*Rwstat)  ();
+};
+
+struct duat_9p_qid {
+    int_8  type;
+    int_32 version;
+    int_64 path;
 };
 
 struct duat_io *duat_open_io (struct io *, struct io *);
@@ -92,31 +98,31 @@ void duat_close_io (struct duat_io *);
 void multiplex_duat ();
 void multiplex_add_duat (struct duat_io *, void *);
 
-void duat_9p_auth();
-void duat_9p_attach();
-void duat_9p_flush();
-void duat_9p_walk();
-void duat_9p_open();
-void duat_9p_create();
-void duat_9p_read();
-void duat_9p_write();
-void duat_9p_clunk();
-void duat_9p_remove();
-void duat_9p_stat();
-void duat_9p_wstat();
+void duat_9p_auth   (int_32, char *, char *);
+void duat_9p_attach (int_32, int_32, char *, char *);
+void duat_9p_flush  (int_16);
+void duat_9p_walk   (int_32, int_32, char **);
+void duat_9p_open   (int_32, int_8);
+void duat_9p_create (int_32, char *, int_32, int_8);
+void duat_9p_read   (int_32, int_64, int_32);
+void duat_9p_write  (int_32, int_64, int_32, char *);
+void duat_9p_clunk  (int_32);
+void duat_9p_remove (int_32);
+void duat_9p_stat   (int_32);
+void duat_9p_wstat  (int_32); /* missing some parameters */
 
-void duat_9p_reply_auth(int_32);
-void duat_9p_reply_attach(int_32);
-void duat_9p_reply_error(int_32);
-void duat_9p_reply_flush(int_32);
-void duat_9p_reply_walk(int_32);
-void duat_9p_reply_open(int_32);
-void duat_9p_reply_create(int_32);
-void duat_9p_reply_read(int_32);
-void duat_9p_reply_write(int_32);
-void duat_9p_reply_clunk(int_32);
-void duat_9p_reply_remove(int_32);
-void duat_9p_reply_stat(int_32);
-void duat_9p_reply_wstat(int_32);
+void duat_9p_reply_auth   (int_16, struct duat_9p_qid);
+void duat_9p_reply_attach (int_16, struct duat_9p_qid);
+void duat_9p_reply_error  (int_16, char *);
+void duat_9p_reply_flush  (int_16);
+void duat_9p_reply_walk   (int_16, struct duat_9p_qid *);
+void duat_9p_reply_open   (int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_create (int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_read   (int_16, int_32, char *);
+void duat_9p_reply_write  (int_16, int_32);
+void duat_9p_reply_clunk  (int_16);
+void duat_9p_reply_remove (int_16);
+void duat_9p_reply_stat   (int_16); /* still some stuff missing */
+void duat_9p_reply_wstat  (int_16);
 
 #endif
