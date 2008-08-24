@@ -201,7 +201,20 @@ static int_16 tolew (int_16 n) {
     return res.i;
 }
 
-static char *pop_string (unsigned char *b, int_32 *i, int_32 length) {
+static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
+    int_16 slen;
+    int_32 i = (*ip);
+
+    if ((i + 2) < length) return (void *)0;
+    slen  = popw (b);
+
+    i += 2;
+
+    if ((slen + i) < length) return (void *)0;
+
+    (*ip) = i + slen;
+
+    return (void *)0;
 }
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
@@ -221,7 +234,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 {
                     b[4] = (unsigned char)Rversion;
 
-                    io_write (io->out, (char *)b, length);
+                    io_write (io->out, (char *)b + 11, length);
 
                     return length;
                 }
