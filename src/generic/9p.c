@@ -41,7 +41,7 @@
 #include <curie/multiplex.h>
 
 struct io_element {
-    struct duat_io *io;
+    struct duat_9p_io *io;
     void *data;
 };
 
@@ -79,10 +79,10 @@ enum request_code {
 };
 
 static struct memory_pool list_pool = MEMORY_POOL_INITIALISER(sizeof (struct io_element));
-static struct memory_pool duat_io_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_io));
+static struct memory_pool duat_io_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_io));
 
-struct duat_io *duat_open_io (struct io *in, struct io *out) {
-    struct duat_io *rv;
+struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
+    struct duat_9p_io *rv;
 
     rv = get_pool_mem (&duat_io_pool);
 
@@ -124,7 +124,7 @@ struct duat_io *duat_open_io (struct io *in, struct io *out) {
     return rv;
 }
 
-void duat_close_io (struct duat_io *io) {
+void duat_close_io (struct duat_9p_io *io) {
     io_close (io->in);
     io_close (io->out);
 
@@ -202,7 +202,7 @@ static int_16 tolew (unsigned char *p, int_16 n) {
 }
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
-                                 struct duat_io *io, void *d) {
+                                 struct duat_9p_io *io, void *d) {
     enum request_code code = (enum request_code)(b[4]);
     int_16 tag = popw (b + 5);
     int_32 i = 7;
@@ -231,7 +231,7 @@ static void mx_on_read (struct io *in, void *d) {
     }
 }
 
-void multiplex_add_duat (struct duat_io *io, void *data) {
+void multiplex_add_duat (struct duat_9p_io *io, void *data) {
     struct io_element *element = get_pool_mem (&list_pool);
 
     element->io = io;

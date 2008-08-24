@@ -49,7 +49,7 @@ enum duat_9p_connection_version {
 
 #define BAD_9P_TAG ((int_16)~0)
 
-struct duat_io {
+struct duat_9p_io {
     struct io *in, *out;
 
     enum duat_9p_connection_version version;
@@ -90,41 +90,41 @@ struct duat_9p_qid {
     int_64 path;
 };
 
-struct duat_io *duat_open_io (struct io *, struct io *);
+struct duat_9p_io *duat_open_io (struct io *, struct io *);
 
 #define duat_open_io_fd(in,out) duat_open_io (io_open ((in)), io_open((out)))
 #define duat_open_stdio() duat_open_io_fd(0, 1)
 
-void duat_close_io (struct duat_io *);
+void duat_close_io (struct duat_9p_io *);
 
 void multiplex_duat ();
-void multiplex_add_duat (struct duat_io *, void *);
+void multiplex_add_duat (struct duat_9p_io *, void *);
 
-void duat_9p_auth   (struct duat_io *, int_32, char *, char *);
-void duat_9p_attach (struct duat_io *, int_32, int_32, char *, char *);
-void duat_9p_flush  (struct duat_io *, int_16);
-void duat_9p_walk   (struct duat_io *, int_32, int_32, char **);
-void duat_9p_open   (struct duat_io *, int_32, int_8);
-void duat_9p_create (struct duat_io *, int_32, char *, int_32, int_8);
-void duat_9p_read   (struct duat_io *, int_32, int_64, int_32);
-void duat_9p_write  (struct duat_io *, int_32, int_64, int_32, char *);
-void duat_9p_clunk  (struct duat_io *, int_32);
-void duat_9p_remove (struct duat_io *, int_32);
-void duat_9p_stat   (struct duat_io *, int_32);
-void duat_9p_wstat  (struct duat_io *, int_32); /* missing some parameters */
+void duat_9p_auth   (struct duat_9p_io *, int_32, char *, char *);
+void duat_9p_attach (struct duat_9p_io *, int_32, int_32, char *, char *);
+void duat_9p_flush  (struct duat_9p_io *, int_16);
+void duat_9p_walk   (struct duat_9p_io *, int_32, int_32, char **);
+void duat_9p_open   (struct duat_9p_io *, int_32, int_8);
+void duat_9p_create (struct duat_9p_io *, int_32, char *, int_32, int_8);
+void duat_9p_read   (struct duat_9p_io *, int_32, int_64, int_32);
+void duat_9p_write  (struct duat_9p_io *, int_32, int_64, int_32, char *);
+void duat_9p_clunk  (struct duat_9p_io *, int_32);
+void duat_9p_remove (struct duat_9p_io *, int_32);
+void duat_9p_stat   (struct duat_9p_io *, int_32);
+void duat_9p_wstat  (struct duat_9p_io *, int_32); /* missing some parameters */
 
-void duat_9p_reply_auth   (struct duat_io *, int_16, struct duat_9p_qid);
-void duat_9p_reply_attach (struct duat_io *, int_16, struct duat_9p_qid);
-void duat_9p_reply_error  (struct duat_io *, int_16, char *);
-void duat_9p_reply_flush  (struct duat_io *, int_16);
-void duat_9p_reply_walk   (struct duat_io *, int_16, struct duat_9p_qid *);
-void duat_9p_reply_open   (struct duat_io *, int_16, struct duat_9p_qid, int_32);
-void duat_9p_reply_create (struct duat_io *, int_16, struct duat_9p_qid, int_32);
-void duat_9p_reply_read   (struct duat_io *, int_16, int_32, char *);
-void duat_9p_reply_write  (struct duat_io *, int_16, int_32);
-void duat_9p_reply_clunk  (struct duat_io *, int_16);
-void duat_9p_reply_remove (struct duat_io *, int_16);
-void duat_9p_reply_stat   (struct duat_io *, int_16); /* still some stuff missing */
-void duat_9p_reply_wstat  (struct duat_io *, int_16);
+void duat_9p_reply_auth   (struct duat_9p_io *, int_16, struct duat_9p_qid);
+void duat_9p_reply_attach (struct duat_9p_io *, int_16, struct duat_9p_qid);
+void duat_9p_reply_error  (struct duat_9p_io *, int_16, char *);
+void duat_9p_reply_flush  (struct duat_9p_io *, int_16);
+void duat_9p_reply_walk   (struct duat_9p_io *, int_16, struct duat_9p_qid *);
+void duat_9p_reply_open   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_create (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_read   (struct duat_9p_io *, int_16, int_32, char *);
+void duat_9p_reply_write  (struct duat_9p_io *, int_16, int_32);
+void duat_9p_reply_clunk  (struct duat_9p_io *, int_16);
+void duat_9p_reply_remove (struct duat_9p_io *, int_16);
+void duat_9p_reply_stat   (struct duat_9p_io *, int_16); /* still some stuff missing */
+void duat_9p_reply_wstat  (struct duat_9p_io *, int_16);
 
 #endif
