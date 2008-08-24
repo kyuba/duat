@@ -116,6 +116,8 @@ struct duat_io *duat_open_io (struct io *in, struct io *out) {
     rv->Rstat   = (void *)0;
     rv->Rwstat  = (void *)0;
 
+    rv->arbitrary = (void *)0;
+
     in->type = iot_read;
     out->type = iot_write;
 

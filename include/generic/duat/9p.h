@@ -80,6 +80,8 @@ struct duat_io {
     void (*Rremove) ();
     void (*Rstat)   ();
     void (*Rwstat)  ();
+
+    void *arbitrary;
 };
 
 struct duat_9p_qid {
@@ -98,31 +100,31 @@ void duat_close_io (struct duat_io *);
 void multiplex_duat ();
 void multiplex_add_duat (struct duat_io *, void *);
 
-void duat_9p_auth   (int_32, char *, char *);
-void duat_9p_attach (int_32, int_32, char *, char *);
-void duat_9p_flush  (int_16);
-void duat_9p_walk   (int_32, int_32, char **);
-void duat_9p_open   (int_32, int_8);
-void duat_9p_create (int_32, char *, int_32, int_8);
-void duat_9p_read   (int_32, int_64, int_32);
-void duat_9p_write  (int_32, int_64, int_32, char *);
-void duat_9p_clunk  (int_32);
-void duat_9p_remove (int_32);
-void duat_9p_stat   (int_32);
-void duat_9p_wstat  (int_32); /* missing some parameters */
+void duat_9p_auth   (struct duat_io *, int_32, char *, char *);
+void duat_9p_attach (struct duat_io *, int_32, int_32, char *, char *);
+void duat_9p_flush  (struct duat_io *, int_16);
+void duat_9p_walk   (struct duat_io *, int_32, int_32, char **);
+void duat_9p_open   (struct duat_io *, int_32, int_8);
+void duat_9p_create (struct duat_io *, int_32, char *, int_32, int_8);
+void duat_9p_read   (struct duat_io *, int_32, int_64, int_32);
+void duat_9p_write  (struct duat_io *, int_32, int_64, int_32, char *);
+void duat_9p_clunk  (struct duat_io *, int_32);
+void duat_9p_remove (struct duat_io *, int_32);
+void duat_9p_stat   (struct duat_io *, int_32);
+void duat_9p_wstat  (struct duat_io *, int_32); /* missing some parameters */
 
-void duat_9p_reply_auth   (int_16, struct duat_9p_qid);
-void duat_9p_reply_attach (int_16, struct duat_9p_qid);
-void duat_9p_reply_error  (int_16, char *);
-void duat_9p_reply_flush  (int_16);
-void duat_9p_reply_walk   (int_16, struct duat_9p_qid *);
-void duat_9p_reply_open   (int_16, struct duat_9p_qid, int_32);
-void duat_9p_reply_create (int_16, struct duat_9p_qid, int_32);
-void duat_9p_reply_read   (int_16, int_32, char *);
-void duat_9p_reply_write  (int_16, int_32);
-void duat_9p_reply_clunk  (int_16);
-void duat_9p_reply_remove (int_16);
-void duat_9p_reply_stat   (int_16); /* still some stuff missing */
-void duat_9p_reply_wstat  (int_16);
+void duat_9p_reply_auth   (struct duat_io *, int_16, struct duat_9p_qid);
+void duat_9p_reply_attach (struct duat_io *, int_16, struct duat_9p_qid);
+void duat_9p_reply_error  (struct duat_io *, int_16, char *);
+void duat_9p_reply_flush  (struct duat_io *, int_16);
+void duat_9p_reply_walk   (struct duat_io *, int_16, struct duat_9p_qid *);
+void duat_9p_reply_open   (struct duat_io *, int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_create (struct duat_io *, int_16, struct duat_9p_qid, int_32);
+void duat_9p_reply_read   (struct duat_io *, int_16, int_32, char *);
+void duat_9p_reply_write  (struct duat_io *, int_16, int_32);
+void duat_9p_reply_clunk  (struct duat_io *, int_16);
+void duat_9p_reply_remove (struct duat_io *, int_16);
+void duat_9p_reply_stat   (struct duat_io *, int_16); /* still some stuff missing */
+void duat_9p_reply_wstat  (struct duat_io *, int_16);
 
 #endif
