@@ -152,16 +152,14 @@ static int_64 toleq (unsigned char *p, int_64 n) {
     union {
         unsigned char c[8];
         int_64 i;
-    } res;
-
-    res.c[0] = (unsigned char)((n >> 56) & 0xff);
-    res.c[1] = (unsigned char)((n >> 48) & 0xff);
-    res.c[2] = (unsigned char)((n >> 40) & 0xff);
-    res.c[3] = (unsigned char)((n >> 32) & 0xff);
-    res.c[4] = (unsigned char)((n >> 24) & 0xff);
-    res.c[5] = (unsigned char)((n >> 16) & 0xff);
-    res.c[6] = (unsigned char)((n >> 8)  & 0xff);
-    res.c[7] = (unsigned char)(n         & 0xff);
+    } res = { .c = { (unsigned char)((n >> 56) & 0xff),
+                     (unsigned char)((n >> 48) & 0xff),
+                     (unsigned char)((n >> 40) & 0xff),
+                     (unsigned char)((n >> 32) & 0xff),
+                     (unsigned char)((n >> 24) & 0xff),
+                     (unsigned char)((n >> 16) & 0xff),
+                     (unsigned char)((n >> 8)  & 0xff),
+                     (unsigned char)(n         & 0xff) } };
 
     return res.i;
 }
@@ -170,12 +168,10 @@ static int_32 tolel (unsigned char *p, int_32 n) {
     union {
       unsigned char c[4];
       int_32 i;
-    } res;
-
-    res.c[0] = (unsigned char)((n >> 24) & 0xff);
-    res.c[1] = (unsigned char)((n >> 16) & 0xff);
-    res.c[2] = (unsigned char)((n >> 8)  & 0xff);
-    res.c[3] = (unsigned char)(n         & 0xff);
+    } res = { .c = { (unsigned char)((n >> 24) & 0xff),
+                     (unsigned char)((n >> 16) & 0xff),
+                     (unsigned char)((n >> 8)  & 0xff),
+                     (unsigned char)(n         & 0xff) } };
 
     return res.i;
 }
@@ -184,10 +180,8 @@ static int_16 tolew (unsigned char *p, int_16 n) {
     union {
         unsigned char c[2];
         int_16 i;
-    } res;
-
-    res.c[0] = (unsigned char)((n >> 8)  & 0xff);
-    res.c[1] = (unsigned char)(n         & 0xff);
+    } res = { .c = { (unsigned char)((n >> 8)  & 0xff),
+                     (unsigned char)(n         & 0xff) } };
 
     return res.i;
 }

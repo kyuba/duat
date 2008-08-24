@@ -47,24 +47,26 @@ enum duat_9p_connection_version {
     duat_9p_version_9p2000_dot_u = 1
 };
 
+#define BAD_9P_TAG ((int_16)~0)
+
 struct duat_io {
     struct io *in, *out;
 
     enum duat_9p_connection_version version;
 
-    void (*auth)();
-    void (*attach)();
-    void (*error)();
-    void (*flush)();
-    void (*walk)();
-    void (*open)();
-    void (*create)();
-    void (*read)();
-    void (*write)();
-    void (*clunk)();
-    void (*remove)();
-    void (*stat)();
-    void (*wstat)();
+    char * (*auth)();
+    char * (*attach)();
+    char * (*error)();
+    char * (*flush)();
+    char * (*walk)();
+    char * (*open)();
+    char * (*create)();
+    char * (*read)();
+    char * (*write)();
+    char * (*clunk)(int_32);
+    char * (*remove)();
+    char * (*stat)();
+    char * (*wstat)();
 };
 
 struct duat_io *duat_open_io (struct io *, struct io *);
@@ -76,5 +78,10 @@ void duat_close_io (struct duat_io *);
 
 void multiplex_duat ();
 void multiplex_add_duat (struct duat_io *, void *);
+
+void reply_error (int_32);
+void reply_read (int_32);
+void reply_write (int_32);
+void reply_stat (int_32);
 
 #endif
