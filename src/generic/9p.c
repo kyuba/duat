@@ -131,7 +131,7 @@ void duat_close_io (struct duat_9p_io *io) {
     free_pool_mem (io);
 }
 
-void multiplex_duat () {
+void multiplex_duat_9p () {
     static char installed = (char)0;
 
     if (installed == (char)0) {
@@ -163,7 +163,7 @@ static int_16 popw (unsigned char *p) {
            (((int_16)(p[0])));
 }
 
-static int_64 toleq (unsigned char *p, int_64 n) {
+static int_64 toleq (int_64 n) {
     union {
         unsigned char c[8];
         int_64 i;
@@ -179,7 +179,7 @@ static int_64 toleq (unsigned char *p, int_64 n) {
     return res.i;
 }
 
-static int_32 tolel (unsigned char *p, int_32 n) {
+static int_32 tolel (int_32 n) {
     union {
       unsigned char c[4];
       int_32 i;
@@ -191,7 +191,7 @@ static int_32 tolel (unsigned char *p, int_32 n) {
     return res.i;
 }
 
-static int_16 tolew (unsigned char *p, int_16 n) {
+static int_16 tolew (int_16 n) {
     union {
         unsigned char c[2];
         int_16 i;
@@ -215,10 +215,14 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (length > 13)
             {
                 int_32 msize = popl (b + 7);
-                int_16 slen  = popd (b + 11);
+                int_16 slen  = popw (b + 11);
 
                 if ((slen + 13) < length)
                 {
+                    b[4] = (unsigned char)Rversion;
+
+                    io_write (io->out, (char *)b, length);
+
                     return length;
                 }
 
@@ -263,7 +267,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     return 0;
 }
 
-static void mx_on_read (struct io *in, void *d) {
+static void mx_on_read_9p (struct io *in, void *d) {
     struct io_element *element = (struct io_element *)d;
     unsigned int p = in->position;
     int_32 cl = (in->length - p);
@@ -278,12 +282,16 @@ static void mx_on_read (struct io *in, void *d) {
     }
 }
 
-void multiplex_add_duat (struct duat_9p_io *io, void *data) {
+void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
     struct io_element *element = get_pool_mem (&list_pool);
 
     element->io = io;
     element->data = data;
 
-    multiplex_add_io (io->in, mx_on_read, (void *)element);
+    multiplex_add_io (io->in, mx_on_read_9p, (void *)element);
     multiplex_add_io_no_callback(io->out);
+}
+
+void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
+    tag = tolew (tag);
 }

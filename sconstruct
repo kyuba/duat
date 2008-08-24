@@ -197,7 +197,8 @@ if optimiseLinking:
   if ostype != 'darwin':
     env.Append(LINKFLAGS='-Wl,-z,noexecstack -Wl,-z,norelro')
 
-env.MergeFlags (subprocess.Popen(['pkg-config', '--cflags', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
+env.Append(LINKFLAGS = subprocess.Popen(['pkg-config', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0],
+           CFLAGS = subprocess.Popen(['pkg-config', '--cflags', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
 
 # adjust linker/compiler flags in pkgconfig file
 
@@ -240,7 +241,7 @@ import glob
 testsource = glob.glob('tests/*.c');
 
 tenv = env.Clone()
-tenv.Append(LIBS = ['duat'])
+tenv.Append(LIBS = ['duat', 'curie'])
 
 for i in testsource:
   tenv.Program(i)

@@ -97,8 +97,8 @@ struct duat_9p_io *duat_open_io (struct io *, struct io *);
 
 void duat_close_io (struct duat_9p_io *);
 
-void multiplex_duat ();
-void multiplex_add_duat (struct duat_9p_io *, void *);
+void multiplex_duat_9p ();
+void multiplex_add_duat_9p (struct duat_9p_io *, void *);
 
 void duat_9p_auth   (struct duat_9p_io *, int_32, char *, char *);
 void duat_9p_attach (struct duat_9p_io *, int_32, int_32, char *, char *);
@@ -115,7 +115,6 @@ void duat_9p_wstat  (struct duat_9p_io *, int_32); /* missing some parameters */
 
 void duat_9p_reply_auth   (struct duat_9p_io *, int_16, struct duat_9p_qid);
 void duat_9p_reply_attach (struct duat_9p_io *, int_16, struct duat_9p_qid);
-void duat_9p_reply_error  (struct duat_9p_io *, int_16, char *);
 void duat_9p_reply_flush  (struct duat_9p_io *, int_16);
 void duat_9p_reply_walk   (struct duat_9p_io *, int_16, struct duat_9p_qid *);
 void duat_9p_reply_open   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
@@ -126,5 +125,7 @@ void duat_9p_reply_clunk  (struct duat_9p_io *, int_16);
 void duat_9p_reply_remove (struct duat_9p_io *, int_16);
 void duat_9p_reply_stat   (struct duat_9p_io *, int_16); /* still some stuff missing */
 void duat_9p_reply_wstat  (struct duat_9p_io *, int_16);
+
+void duat_9p_reply_error  (struct duat_9p_io *, int_16, char *);
 
 #endif
