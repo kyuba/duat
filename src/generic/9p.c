@@ -54,7 +54,7 @@ enum request_code {
     Rauth    = 103,
     Tattach  = 104,
     Rattach  = 105,
-    Terror   = 106,
+/*    Terror   = 106, */
     Rerror   = 107,
     Tflush   = 108,
     Rflush   = 109,
@@ -89,19 +89,32 @@ struct duat_io *duat_open_io (struct io *in, struct io *out) {
     rv->in = in;
     rv->out = out;
 
-    rv->auth   = (void *)0;
-    rv->attach = (void *)0;
-    rv->error  = (void *)0;
-    rv->flush  = (void *)0;
-    rv->walk   = (void *)0;
-    rv->open   = (void *)0;
-    rv->create = (void *)0;
-    rv->read   = (void *)0;
-    rv->write  = (void *)0;
-    rv->clunk  = (void *)0;
-    rv->remove = (void *)0;
-    rv->stat   = (void *)0;
-    rv->wstat  = (void *)0;
+    rv->Tauth   = (void *)0;
+    rv->Tattach = (void *)0;
+    rv->Tflush  = (void *)0;
+    rv->Twalk   = (void *)0;
+    rv->Topen   = (void *)0;
+    rv->Tcreate = (void *)0;
+    rv->Tread   = (void *)0;
+    rv->Twrite  = (void *)0;
+    rv->Tclunk  = (void *)0;
+    rv->Tremove = (void *)0;
+    rv->Tstat   = (void *)0;
+    rv->Twstat  = (void *)0;
+
+    rv->Rauth   = (void *)0;
+    rv->Rattach = (void *)0;
+    rv->Rerror  = (void *)0;
+    rv->Rflush  = (void *)0;
+    rv->Rwalk   = (void *)0;
+    rv->Ropen   = (void *)0;
+    rv->Rcreate = (void *)0;
+    rv->Rread   = (void *)0;
+    rv->Rwrite  = (void *)0;
+    rv->Rclunk  = (void *)0;
+    rv->Rremove = (void *)0;
+    rv->Rstat   = (void *)0;
+    rv->Rwstat  = (void *)0;
 
     in->type = iot_read;
     out->type = iot_write;

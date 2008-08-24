@@ -54,19 +54,32 @@ struct duat_io {
 
     enum duat_9p_connection_version version;
 
-    char * (*auth)();
-    char * (*attach)();
-    char * (*error)();
-    char * (*flush)();
-    char * (*walk)();
-    char * (*open)();
-    char * (*create)();
-    char * (*read)();
-    char * (*write)();
-    char * (*clunk)(int_32);
-    char * (*remove)();
-    char * (*stat)();
-    char * (*wstat)();
+    char * (*Tauth)();
+    char * (*Tattach)();
+    char * (*Tflush)();
+    char * (*Twalk)();
+    char * (*Topen)();
+    char * (*Tcreate)();
+    char * (*Tread)();
+    char * (*Twrite)();
+    char * (*Tclunk)(int_32);
+    char * (*Tremove)();
+    char * (*Tstat)();
+    char * (*Twstat)();
+
+    void (*Rauth)();
+    void (*Rattach)();
+    void (*Rerror)();
+    void (*Rflush)();
+    void (*Rwalk)();
+    void (*Ropen)();
+    void (*Rcreate)();
+    void (*Rread)();
+    void (*Rwrite)();
+    void (*Rclunk)();
+    void (*Rremove)();
+    void (*Rstat)();
+    void (*Rwstat)();
 };
 
 struct duat_io *duat_open_io (struct io *, struct io *);
@@ -79,9 +92,31 @@ void duat_close_io (struct duat_io *);
 void multiplex_duat ();
 void multiplex_add_duat (struct duat_io *, void *);
 
-void reply_error (int_32);
-void reply_read (int_32);
-void reply_write (int_32);
-void reply_stat (int_32);
+void duat_9p_auth();
+void duat_9p_attach();
+void duat_9p_flush();
+void duat_9p_walk();
+void duat_9p_open();
+void duat_9p_create();
+void duat_9p_read();
+void duat_9p_write();
+void duat_9p_clunk();
+void duat_9p_remove();
+void duat_9p_stat();
+void duat_9p_wstat();
+
+void duat_9p_reply_auth(int_32);
+void duat_9p_reply_attach(int_32);
+void duat_9p_reply_error(int_32);
+void duat_9p_reply_flush(int_32);
+void duat_9p_reply_walk(int_32);
+void duat_9p_reply_open(int_32);
+void duat_9p_reply_create(int_32);
+void duat_9p_reply_read(int_32);
+void duat_9p_reply_write(int_32);
+void duat_9p_reply_clunk(int_32);
+void duat_9p_reply_remove(int_32);
+void duat_9p_reply_stat(int_32);
+void duat_9p_reply_wstat(int_32);
 
 #endif
