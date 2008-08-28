@@ -40,6 +40,35 @@
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 
+#define DEBUG
+
+#ifdef DEBUG
+#include <curie/sexpr.h>
+
+static void sx_stdio_write (struct sexpr *sx) {
+    static struct sexpr_io *stdio = (struct sexpr_io *)0;
+
+    if (stdio == (struct sexpr_io *)0) stdio = sx_open_stdio();
+
+    sx_write (stdio, sx);
+    sx_destroy (sx);
+}
+
+static void debug (char *t) {
+    sx_stdio_write (make_string(t));
+}
+
+static void debug_num (int i) {
+    sx_stdio_write (make_integer(i));
+}
+
+#else
+
+#define debug(text)
+#define debug_num(num)
+
+#endif
+
 struct io_element {
     struct duat_9p_io *io;
     void *data;
@@ -214,6 +243,8 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
 
     (*ip) = i + slen;
 
+    debug_num (slen);
+
     return (void *)0;
 }
 
@@ -222,6 +253,9 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     enum request_code code = (enum request_code)(b[4]);
     int_16 tag = popw (b + 5);
     int_32 i = 7;
+
+    debug_num (length);
+    debug_num (tag);
 
     switch (code) {
         case Tversion:
