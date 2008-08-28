@@ -235,15 +235,17 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     int_32 i = (*ip);
 
     if ((i + 2) < length) return (void *)0;
-    slen  = popw (b);
+    slen  = popw (b + i);
 
     i += 2;
+
+    debug_num (slen);
+    debug_num (i);
+    debug_num (length);
 
     if ((slen + i) < length) return (void *)0;
 
     (*ip) = i + slen;
-
-    debug_num (slen);
 
     return (void *)0;
 }
@@ -256,25 +258,20 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     debug_num (length);
     debug_num (tag);
+    debug_num (code);
 
     switch (code) {
         case Tversion:
             if (length > 13)
             {
                 int_32 msize = popl (b + 7);
-                int_16 slen  = popw (b + 11);
 
-                if ((slen + 13) < length)
-                {
-                    b[4] = (unsigned char)Rversion;
+                debug_num (msize);
 
-                    io_write (io->out, (char *)b + 11, length);
+                i += 4;
+                char *versionstring = pop_string(b, &i, length);
 
-                    return length;
-                }
-
-                duat_9p_reply_error (io, tag, "Message too short.");
-                return 0;
+                return length;
             }
 
             duat_9p_reply_error (io, tag, "Message too short.");
