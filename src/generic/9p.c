@@ -367,6 +367,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
         case Twstat:
         case Rwstat:
         default:
+            debug ("bad/unrecognised message");
             /* bad/unrecognised message */
             duat_9p_reply_error (io, tag, "Function not implemented.");
             io_close (io->in);
