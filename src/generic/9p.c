@@ -209,6 +209,9 @@ static int_64 toleq (int_64 n) {
 }
 
 static int_32 tolel (int_32 n) {
+    debug ("---");
+    debug_num (n);
+
     union {
       unsigned char c[4];
       int_32 i;
@@ -217,15 +220,22 @@ static int_32 tolel (int_32 n) {
                      (unsigned char)((n >> 8)  & 0xff),
                      (unsigned char)(n         & 0xff) } };
 
+    debug_num (res.i);
+
     return res.i;
 }
 
 static int_16 tolew (int_16 n) {
+    debug ("---");
+    debug_num (n);
+
     union {
         unsigned char c[2];
         int_16 i;
     } res = { .c = { (unsigned char)((n >> 8)  & 0xff),
                      (unsigned char)(n         & 0xff) } };
+
+    debug_num (res.i);
 
     return res.i;
 }
@@ -234,21 +244,27 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     int_16 slen;
     int_32 i = (*ip);
 
-    if ((i + 2) < length) return (void *)0;
+    if ((i + 2) > length) return (char *)0;
     slen  = popw (b + i);
 
+    if ((slen + i + 2) > length) return (char *)0;
+
+    unsigned char *sp = (b + i), *bs = sp;
     i += 2;
 
-    debug_num (slen);
-    debug_num (i);
-    debug_num (length);
+    for (; slen > 0; i++, slen--, sp++)
+        *sp = b[i];
+    *sp = (unsigned char)0;
 
-    if ((slen + i) < length) return (void *)0;
-
+    debug (bs);
     (*ip) = i + slen;
 
-    return (void *)0;
+    return (void *)bs;
 }
+
+#define VERSION_STRING_9P2000 "9P2000"
+#define VERSION_STRING_LENGTH 6
+#define MINMSGSIZE            0x2000
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
                                  struct duat_9p_io *io, void *d) {
@@ -258,7 +274,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     debug_num (length);
     debug_num (tag);
-    debug_num (code);
 
     switch (code) {
         case Tversion:
@@ -266,12 +281,61 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 int_32 msize = popl (b + 7);
 
+                if (msize < MINMSGSIZE) msize = MINMSGSIZE;
+                io->max_message_size = msize;
+
                 debug_num (msize);
 
                 i += 4;
                 char *versionstring = pop_string(b, &i, length);
 
-                return length;
+                if (versionstring == (char *)0) {
+                    duat_9p_reply_error (io, tag, "Malformed message.");
+                    return 0;
+                } else {
+                    int_32 p;
+                    for (p = 0;
+                         (p < 6) &&
+                         (versionstring[p] == VERSION_STRING_9P2000[p]);
+                         p++);
+
+                    if (p == 6) {
+                        io->version =
+                          ((versionstring[6] == '.') &&
+                           (versionstring[7] == 'u') &&
+                           (versionstring[8] == (char)0)) ?
+                                duat_9p_version_9p2000_dot_u :
+                                duat_9p_version_9p2000;
+
+                        struct io *out = io->out;
+                        int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + 6 +
+                                           ((io->version == duat_9p_version_9p2000_dot_u) ? 2 : 0));
+                        int_8 c = Rversion;
+
+                        tag   = tolew (tag);
+                        msize = tolel (msize);
+
+                        io_collect (out, (void *)&ol,        4);
+                        io_collect (out, (void *)&c,         1);
+                        io_collect (out, (void *)&tag,       2);
+                        io_collect (out, (void *)&msize,     4);
+
+                        if (io->version == duat_9p_version_9p2000) {
+                            tag = tolew (6);
+                            io_collect (out, (void *)&tag,       2);
+                            io_collect (out,         "9P2000",   6);
+                        } else {
+                            tag = tolew (8);
+                            io_collect (out, (void *)&tag,       2);
+                            io_collect (out,         "9P2000.u", 8);
+                        }
+
+                        return length;
+                    }
+
+                    duat_9p_reply_error (io, tag, "Unsupported version.");
+                    return 0;
+                }
             }
 
             duat_9p_reply_error (io, tag, "Message too short.");
@@ -338,4 +402,6 @@ void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
 
 void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
     tag = tolew (tag);
+
+    debug (string);
 }

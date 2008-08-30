@@ -47,12 +47,13 @@ enum duat_9p_connection_version {
     duat_9p_version_9p2000_dot_u = 1
 };
 
-#define BAD_9P_TAG ((int_16)~0)
+#define NO_TAG_9P ((int_16)~0)
 
 struct duat_9p_io {
     struct io *in, *out;
 
     enum duat_9p_connection_version version;
+    int_16 max_message_size;
 
     void (*Tauth)   (int_16);
     void (*Tattach) (int_16);
