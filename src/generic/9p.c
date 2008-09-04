@@ -301,12 +301,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     }
 
                     duat_9p_reply_error (io, tag, "Unsupported version.");
-                    return 0;
+                    return length;
                 }
             }
 
             duat_9p_reply_error (io, tag, "Message too short.");
-            return 0;
+            return length;
         case Rversion:
             if (length > 13)
             {
@@ -340,36 +340,65 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
         case Tauth:
         case Rauth:
+            debug ("auth");
+            break;
         case Tattach:
         case Rattach:
+            debug ("attach");
+            break;
         case Rerror:
+            debug ("error");
+            break;
         case Tflush:
         case Rflush:
+            debug ("flush");
+            break;
         case Twalk:
         case Rwalk:
+            debug ("walk");
+            break;
         case Topen:
         case Ropen:
+            debug ("open");
+            break;
         case Tcreate:
         case Rcreate:
+            debug ("create");
+            break;
         case Tread:
         case Rread:
+            debug ("read");
+            break;
         case Twrite:
         case Rwrite:
+            debug ("write");
+            break;
         case Tclunk:
         case Rclunk:
+            debug ("clunk");
+            break;
         case Tremove:
         case Rremove:
+            debug ("remove");
+            break;
         case Tstat:
         case Rstat:
+            debug ("stat");
+            break;
         case Twstat:
         case Rwstat:
+            debug ("wstat");
+            break;
         default:
             /* bad/unrecognised message */
-            duat_9p_reply_error (io, tag, "Function not implemented.");
-            io_close (io->in);
+            break;
     }
 
-    return 0;
+    duat_9p_reply_error (io, tag, "Function not implemented.");
+/*    io_close (io->in);
+    io_close (io->out);*/
+
+    return length;
 }
 
 static void mx_on_read_9p (struct io *in, void *d) {
