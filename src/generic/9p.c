@@ -55,11 +55,11 @@ static void sx_stdio_write (struct sexpr *sx) {
 }
 
 static void debug (char *t) {
-    sx_stdio_write (make_string(t));
+    sx_stdio_write (cons(make_symbol("debug"), make_string(t)));
 }
 
 static void debug_num (int i) {
-    sx_stdio_write (make_integer(i));
+    sx_stdio_write (cons(make_symbol("debug"), make_integer(i)));
 }
 
 #else
@@ -147,6 +147,8 @@ struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
 
     rv->arbitrary = (void *)0;
 
+    rv->version = duat_9p_uninitialised;
+
     in->type = iot_read;
     out->type = iot_write;
 
@@ -196,46 +198,36 @@ static int_64 toleq (int_64 n) {
     union {
         unsigned char c[8];
         int_64 i;
-    } res = { .c = { (unsigned char)((n >> 56) & 0xff),
-                     (unsigned char)((n >> 48) & 0xff),
-                     (unsigned char)((n >> 40) & 0xff),
-                     (unsigned char)((n >> 32) & 0xff),
-                     (unsigned char)((n >> 24) & 0xff),
-                     (unsigned char)((n >> 16) & 0xff),
+    } res = { .c = { (unsigned char)(n         & 0xff),
                      (unsigned char)((n >> 8)  & 0xff),
-                     (unsigned char)(n         & 0xff) } };
+                     (unsigned char)((n >> 16) & 0xff),
+                     (unsigned char)((n >> 24) & 0xff),
+                     (unsigned char)((n >> 32) & 0xff),
+                     (unsigned char)((n >> 40) & 0xff),
+                     (unsigned char)((n >> 48) & 0xff),
+                     (unsigned char)((n >> 56) & 0xff) } };
 
     return res.i;
 }
 
 static int_32 tolel (int_32 n) {
-    debug ("---");
-    debug_num (n);
-
     union {
       unsigned char c[4];
       int_32 i;
-    } res = { .c = { (unsigned char)((n >> 24) & 0xff),
-                     (unsigned char)((n >> 16) & 0xff),
+    } res = { .c = { (unsigned char)(n         & 0xff),
                      (unsigned char)((n >> 8)  & 0xff),
-                     (unsigned char)(n         & 0xff) } };
-
-    debug_num (res.i);
+                     (unsigned char)((n >> 16) & 0xff),
+                     (unsigned char)((n >> 24) & 0xff) } };
 
     return res.i;
 }
 
 static int_16 tolew (int_16 n) {
-    debug ("---");
-    debug_num (n);
-
     union {
         unsigned char c[2];
         int_16 i;
-    } res = { .c = { (unsigned char)((n >> 8)  & 0xff),
-                     (unsigned char)(n         & 0xff) } };
-
-    debug_num (res.i);
+    } res = { .c = { (unsigned char)(n         & 0xff),
+                     (unsigned char)((n >> 8)  & 0xff) } };
 
     return res.i;
 }
@@ -256,7 +248,6 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
         *sp = b[i];
     *sp = (unsigned char)0;
 
-    debug (bs);
     (*ip) = i + slen;
 
     return (void *)bs;
@@ -265,15 +256,13 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
 #define VERSION_STRING_9P2000 "9P2000"
 #define VERSION_STRING_LENGTH 6
 #define MINMSGSIZE            0x2000
+#define MAXMSGSIZE            0x2000
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
                                  struct duat_9p_io *io, void *d) {
     enum request_code code = (enum request_code)(b[4]);
     int_16 tag = popw (b + 5);
     int_32 i = 7;
-
-    debug_num (length);
-    debug_num (tag);
 
     switch (code) {
         case Tversion:
@@ -282,9 +271,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 int_32 msize = popl (b + 7);
 
                 if (msize < MINMSGSIZE) msize = MINMSGSIZE;
+                if (msize > MAXMSGSIZE) msize = MINMSGSIZE;
                 io->max_message_size = msize;
-
-                debug_num (msize);
 
                 i += 4;
                 char *versionstring = pop_string(b, &i, length);
@@ -307,28 +295,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                                 duat_9p_version_9p2000_dot_u :
                                 duat_9p_version_9p2000;
 
-                        struct io *out = io->out;
-                        int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + 6 +
-                                           ((io->version == duat_9p_version_9p2000_dot_u) ? 2 : 0));
-                        int_8 c = Rversion;
-
-                        tag   = tolew (tag);
-                        msize = tolel (msize);
-
-                        io_collect (out, (void *)&ol,        4);
-                        io_collect (out, (void *)&c,         1);
-                        io_collect (out, (void *)&tag,       2);
-                        io_collect (out, (void *)&msize,     4);
-
-                        if (io->version == duat_9p_version_9p2000) {
-                            tag = tolew (6);
-                            io_collect (out, (void *)&tag,       2);
-                            io_collect (out,         "9P2000",   6);
-                        } else {
-                            tag = tolew (8);
-                            io_collect (out, (void *)&tag,       2);
-                            io_collect (out,         "9P2000.u", 8);
-                        }
+                        duat_9p_reply_version(io, tag, msize, ((io->version == duat_9p_version_9p2000_dot_u) ? "9P2000.u" : "9P2000"));
 
                         return length;
                     }
@@ -341,6 +308,36 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             duat_9p_reply_error (io, tag, "Message too short.");
             return 0;
         case Rversion:
+            if (length > 13)
+            {
+                int_32 msize = popl (b + 7);
+
+                io->max_message_size = msize;
+
+                i += 4;
+                char *versionstring = pop_string(b, &i, length);
+
+                if (versionstring != (char *)0) {
+                    int_32 p;
+                    for (p = 0;
+                         (p < 6) &&
+                         (versionstring[p] == VERSION_STRING_9P2000[p]);
+                         p++);
+
+                    if (p == 6) {
+                        io->version =
+                          ((versionstring[6] == '.') &&
+                           (versionstring[7] == 'u') &&
+                           (versionstring[8] == (char)0)) ?
+                                duat_9p_version_9p2000_dot_u :
+                                duat_9p_version_9p2000;
+                    } else {
+                        io->version = duat_9p_uninitialised;
+                    }
+                }
+            }
+
+            return length;
         case Tauth:
         case Rauth:
         case Tattach:
@@ -367,7 +364,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
         case Twstat:
         case Rwstat:
         default:
-            debug ("bad/unrecognised message");
             /* bad/unrecognised message */
             duat_9p_reply_error (io, tag, "Function not implemented.");
             io_close (io->in);
@@ -401,7 +397,67 @@ void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
     multiplex_add_io_no_callback(io->out);
 }
 
+void duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
+    struct io *out = io->out;
+    int_16 len = 0;
+    int_16 tag = NO_TAG_9P;
+    while (version[len]) len++;
+
+    int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + len);
+    int_8 c = Tversion;
+
+    tag   = tolew (tag);
+    msize = tolel (msize);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&msize,     4);
+
+    int_16 slen = tolew (len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, version,            len);
+}
+
+void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
+    struct io *out = io->out;
+    int_16 len = 0;
+    while (version[len]) len++;
+
+    int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + len);
+    int_8 c = Rversion;
+
+    tag   = tolew (tag);
+    msize = tolel (msize);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&msize,     4);
+
+    int_16 slen = tolew (len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, version,            len);
+}
+
 void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
+    struct io *out = io->out;
+    int_16 len = 0;
+    while (string[len]) len++;
+
+    int_32 ol = tolel (4 + 1 + 2 + 2 + len);
+    int_8 c = Rerror;
+
+    tag   = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+
+    int_16 slen = tolew (len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, string,             len);
+
     tag = tolew (tag);
 
     debug (string);
