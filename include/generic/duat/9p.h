@@ -60,7 +60,10 @@ struct duat_9p_tag_metadata {
 };
 
 struct duat_9p_fid_metadata {
-    void *arbitrary;
+    void    *arbitrary;
+    int_16   path_count;
+    int_16   path_block_size;
+    char   **path;
 };
 
 #define NO_TAG_9P ((int_16)~0)
@@ -105,7 +108,7 @@ struct duat_9p_io {
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
     void (*Rerror)  (struct duat_9p_io *, int_16, char *);
     void (*Rflush)  (struct duat_9p_io *, int_16);
-    void (*Rwalk)   (struct duat_9p_io *, int_16);
+    void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
     void (*Ropen)   (struct duat_9p_io *, int_16);
     void (*Rcreate) (struct duat_9p_io *, int_16);
     void (*Rread)   (struct duat_9p_io *, int_16);
@@ -158,5 +161,9 @@ void duat_9p_reply_stat    (struct duat_9p_io *, int_16); /* still some stuff mi
 void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
 
 void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *);
+
+
+struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
+struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
 
 #endif

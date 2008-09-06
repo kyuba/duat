@@ -75,6 +75,17 @@ void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
 void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
             int_16 c, char **names)
 {
+    struct duat_9p_qid qid[c];
+    int_16 i = 0;
+
+    while (i < c) {
+        qid[i].type    = 0;
+        qid[i].version = 0;
+        qid[i].path    = 0;
+        i++;
+    }
+
+    duat_9p_reply_walk (io, tag, c, qid);
 }
 
 void on_connect(struct io *in, struct io *out, void *p) {

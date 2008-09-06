@@ -270,7 +270,13 @@ static void register_tag (struct duat_9p_io *io, int_16 tag) {
 }
 
 static void kill_tag (struct duat_9p_io *io, int_16 tag) {
-    tree_remove_node (io->tags, tag);
+    struct tree_node *n =
+            tree_get_node(io->tags, (int_pointer)tag);
+
+    if (n != (struct tree_node *)0) {
+        free_pool_mem ((struct duat_9p_tag_metadata *)node_get_value(n));
+        tree_remove_node (io->tags, tag);
+    }
 }
 
 static int_16 find_free_tag (struct duat_9p_io *io) {
@@ -281,6 +287,90 @@ static int_16 find_free_tag (struct duat_9p_io *io) {
     register_tag(io, tag);
 
     return tag;
+}
+
+static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
+                          char **path) {
+    struct duat_9p_fid_metadata *md = get_pool_mem (&duat_fid_pool);
+    md->arbitrary       = (void *)0;
+    md->path_count      = pathc;
+
+    int_16 i = 0, size = 0;
+
+    while (i < pathc) {
+        int_16 j = 0;
+
+        size += sizeof(char *) + 1;
+
+        while (path[i][j]) j++;
+
+        size += j;
+        i++;
+    }
+
+    md->path_block_size = size;
+    char *pathb         = aalloc (size);
+
+    int_16 b = pathc * sizeof (char *);
+
+    for (i = 0; i < pathc; i++) {
+        int_16 j = 0;
+
+        while (path[i][j]) {
+            pathb[b]    = path[i][j];
+
+            b++;
+            j++;
+        }
+
+        pathb[b]        = (char)0;
+        b++;
+    }
+
+    md->path            = path;
+
+    tree_add_node_value (io->tags, (int_pointer)fid, (void *)md);
+}
+
+static void kill_fid (struct duat_9p_io *io, int_32 fid) {
+    struct tree_node *n =
+            tree_get_node(io->fids, (int_pointer)fid);
+
+    if (n != (struct tree_node *)0) {
+        struct duat_9p_fid_metadata *md =
+                (struct duat_9p_fid_metadata *)node_get_value(n);
+
+        afree (md->path_block_size, md->path);
+
+        free_pool_mem (md);
+        tree_remove_node (io->fids, fid);
+    }
+}
+
+struct duat_9p_tag_metadata *
+        duat_9p_tag_metadata (struct duat_9p_io *io, int_16 tag)
+{
+    struct tree_node *n =
+            tree_get_node(io->tags, (int_pointer)tag);
+
+    if (n != (struct tree_node *)0) {
+        return (struct duat_9p_tag_metadata *)node_get_value(n);
+    }
+
+    return (struct duat_9p_tag_metadata *)0;
+}
+
+struct duat_9p_fid_metadata *
+        duat_9p_fid_metadata (struct duat_9p_io *io, int_32 fid)
+{
+    struct tree_node *n =
+            tree_get_node(io->fids, (int_pointer)fid);
+
+    if (n != (struct tree_node *)0) {
+        return (struct duat_9p_fid_metadata *)node_get_value(n);
+    }
+
+    return (struct duat_9p_fid_metadata *)0;
 }
 
 #define VERSION_STRING_9P2000 "9P2000"
@@ -454,6 +544,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
         case Rflush:
             debug ("flush");
             break;
+
         case Twalk:
             if (io->Twalk == (void *)0) break;
 
@@ -475,6 +566,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     }
                 }
 
+                register_fid (io, nfid, namec, names);
+
                 io->Twalk(io, tag, tfid, nfid, namec, names);
 
                 return length;
@@ -482,8 +575,32 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rwalk:
-            debug ("walk");
-            break;
+            if (io->Rwalk == (void *)0) return length;
+
+            if (length >= 9) {
+                int_16 qidc = popw (b + 7);
+                int_16 r = 0;
+
+                struct duat_9p_qid qid[qidc];
+
+                i = 9;
+
+                while (r < qidc) {
+                    if ((i + 13) < length) return length;
+
+                    qid[r].type    = b[i];
+                    qid[r].version = popl (b + i + 1);
+                    qid[r].path    = popq (b + i + 5);
+
+                    i += 13;
+
+                    r++;
+                }
+
+                io->Rwalk(io, tag, qidc, qid);
+            }
+            return length;
+
         case Topen:
         case Ropen:
             debug ("open");
@@ -556,7 +673,8 @@ int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
 }
 
 int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
-                        char *uname, char *aname) {
+                        char *uname, char *aname)
+{
     struct io *out = io->out;
     int_16 uname_len = 0;
     int_16 aname_len = 0;
@@ -584,6 +702,51 @@ int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
     slen        = tolew (aname_len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, aname,              aname_len);
+
+    return tag;
+}
+
+int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
+                        int_16 pathcount, char **path)
+{
+    struct io *out = io->out;
+    int_16 tag = find_free_tag (io);
+
+    int_32 ol  = 4 + 1 + 2 + 4 + 4 + 2 + (pathcount * 2);
+    int_16 i   = 0, le[pathcount];
+
+    while (i < pathcount)
+    {
+        int len = 0;
+
+        while (path[i][len]) len++;
+        le[i]  = len;
+        ol    += 1 + len;
+
+        i++;
+    }
+
+    ol         = tolel (ol);
+    int_8 c    = Tattach;
+
+    tag        = tolew (tag);
+    fid        = tolel (fid);
+    newfid     = tolel (newfid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+    io_collect (out, (void *)&newfid,    4);
+
+    tag        = tolew (pathcount);
+    io_collect (out, (void *)&tag,       2);
+
+    for (i = 0; i < pathcount; i++) {
+        tag    = tolew (le[i]);
+        io_collect (out, (void *)&tag,   2);
+        io_collect (out, (void *)path[i],le[i]);
+    }
 
     return tag;
 }
@@ -637,7 +800,8 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
 }
 
 void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
-                           struct duat_9p_qid qid) {
+                           struct duat_9p_qid qid)
+{
     kill_tag(io, tag);
 
     struct io *out = io->out;
@@ -656,4 +820,38 @@ void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
 
     int_64 t  = toleq (qid.path);
     io_collect (out, (void *)&t,         8);
+}
+
+void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
+                           struct duat_9p_qid *qid)
+{
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol = tolel (4 + 1 + 2 + 2 + qidc * 13);
+    int_8 c   = Rwalk;
+    tag       = tolew (tag);
+
+    io_collect (out, (void *)&ol,              4);
+    io_collect (out, (void *)&c,               1);
+    io_collect (out, (void *)&tag,             2);
+
+    tag       = tolew (qidc);
+    io_collect (out, (void *)&tag,             2);
+
+    int_16  i = 0;
+    int_64  t = 0;
+
+    while (i < qidc) {
+        io_collect (out, (void *)&qid[i].type, 1);
+
+        ol    = tolew (qid[i].version);
+        io_collect (out, (void *)&ol,          4);
+
+        t     = toleq (qid[i].path);
+        io_collect (out, (void *)&t,           8);
+
+        i++;
+    }
 }
