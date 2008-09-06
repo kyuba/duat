@@ -43,8 +43,18 @@
 
 #include <duat/9p.h>
 
+void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+              char *uname, char *aname)
+{
+    struct duat_9p_qid qid = { 0, 0, 0 };
+
+    duat_9p_reply_attach (io, tag, qid);
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
+
+    io->Tattach = Tattach;
 
     multiplex_add_duat_9p (io, (void *)0);
 }

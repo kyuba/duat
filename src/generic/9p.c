@@ -40,6 +40,9 @@
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 
+static unsigned int pop_message (unsigned char *, int_32, struct duat_9p_io *,
+                                 void *);
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -110,6 +113,9 @@ enum request_code {
 static struct memory_pool list_pool = MEMORY_POOL_INITIALISER(sizeof (struct io_element));
 static struct memory_pool duat_io_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_io));
 
+static struct memory_pool duat_tag_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_tag_metadata));
+static struct memory_pool duat_fid_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_fid_metadata));
+
 struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
     struct duat_9p_io *rv;
 
@@ -117,6 +123,9 @@ struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
 
     rv->in = in;
     rv->out = out;
+
+    rv->tags = tree_create();
+    rv->fids = tree_create();
 
     rv->Tauth   = (void *)0;
     rv->Tattach = (void *)0;
@@ -253,16 +262,66 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     return (void *)bs;
 }
 
+static void register_tag (struct duat_9p_io *io, int_16 tag) {
+    struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
+    md->arbitrary = (void *)0;
+
+    tree_add_node_value (io->tags, (int_pointer)tag, (void *)md);
+}
+
+static void kill_tag (struct duat_9p_io *io, int_16 tag) {
+    tree_remove_node (io->tags, tag);
+}
+
+static int_16 find_free_tag (struct duat_9p_io *io) {
+    int_16 tag = 0;
+
+    while (tree_get_node(io->tags, (int_pointer)tag) != (struct tree_node *)0) tag++;
+
+    register_tag(io, tag);
+
+    return tag;
+}
+
 #define VERSION_STRING_9P2000 "9P2000"
 #define VERSION_STRING_LENGTH 6
 #define MINMSGSIZE            0x2000
 #define MAXMSGSIZE            0x2000
+
+static void mx_on_read_9p (struct io *in, void *d) {
+    struct io_element *element = (struct io_element *)d;
+    unsigned int p = in->position;
+    int_32 cl = (in->length - p);
+
+    if (cl > 6) { /* enough data to parse a message... */
+        int_32 length = popl ((unsigned char *)(in->buffer + p));
+
+        if (cl < length) return;
+
+        in->position += pop_message ((unsigned char *)(in->buffer + p), length,
+                                     element->io, element->data);
+    }
+}
+
+void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
+    struct io_element *element = get_pool_mem (&list_pool);
+
+    element->io = io;
+    element->data = data;
+
+    multiplex_add_io (io->in, mx_on_read_9p, (void *)element);
+    multiplex_add_io_no_callback(io->out);
+}
+
+/* message parser */
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
                                  struct duat_9p_io *io, void *d) {
     enum request_code code = (enum request_code)(b[4]);
     int_16 tag = popw (b + 5);
     int_32 i = 7;
+
+    register_tag(io, tag);
 
     switch (code) {
         case Tversion:
@@ -271,7 +330,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 int_32 msize = popl (b + 7);
 
                 if (msize < MINMSGSIZE) msize = MINMSGSIZE;
-                if (msize > MAXMSGSIZE) msize = MINMSGSIZE;
+                if (msize > MAXMSGSIZE) msize = MAXMSGSIZE;
                 io->max_message_size = msize;
 
                 i += 4;
@@ -312,6 +371,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 int_32 msize = popl (b + 7);
 
+                if (msize > MAXMSGSIZE) msize = MAXMSGSIZE;
+
                 io->max_message_size = msize;
 
                 i += 4;
@@ -343,8 +404,40 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             debug ("auth");
             break;
         case Tattach:
+            if (io->Tattach == (void *)0) break;
+
+            if (length >= 19) {
+                int_32 tfid = popl (b + 7);
+                int_32 afid = popl (b + 11);
+                i = 15;
+
+                char *uname = pop_string(b, &i, length);
+                if (uname == (char *)0) break;
+
+                char *aname = pop_string(b, &i, length);
+                if (aname == (char *)0) break;
+
+                io->Tattach(io, tag, tfid, afid, uname, aname);
+
+                return length;
+            }
+
+            break;
         case Rattach:
-            debug ("attach");
+            if (io->Rattach == (void *)0) break;
+
+            if (length == 20) {
+                struct duat_9p_qid qid = {
+                    .type = b[7],
+                    .version = popl (b + 8),
+                    .path = popq (b + 12)
+                };
+
+                io->Rattach(io, tag, qid);
+
+                return length;
+            }
+
             break;
         case Rerror:
             debug ("error");
@@ -394,39 +487,17 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
     }
 
-    duat_9p_reply_error (io, tag, "Function not implemented.");
+    duat_9p_reply_error (io, tag,
+                         "Function not implemented or malformed message.");
 /*    io_close (io->in);
     io_close (io->out);*/
 
     return length;
 }
 
-static void mx_on_read_9p (struct io *in, void *d) {
-    struct io_element *element = (struct io_element *)d;
-    unsigned int p = in->position;
-    int_32 cl = (in->length - p);
+/* request messages */
 
-    if (cl > 6) { /* enough data to parse a message... */
-        int_32 length = popl ((unsigned char *)(in->buffer + p));
-
-        if (cl < length) return;
-
-        in->position += pop_message ((unsigned char *)(in->buffer + p), length,
-                                     element->io, element->data);
-    }
-}
-
-void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
-    struct io_element *element = get_pool_mem (&list_pool);
-
-    element->io = io;
-    element->data = data;
-
-    multiplex_add_io (io->in, mx_on_read_9p, (void *)element);
-    multiplex_add_io_no_callback(io->out);
-}
-
-void duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
+int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
     struct io *out = io->out;
     int_16 len = 0;
     int_16 tag = NO_TAG_9P;
@@ -446,9 +517,48 @@ void duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
     int_16 slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, version,            len);
+
+    return NO_TAG_9P;
 }
 
+int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
+                        char *uname, char *aname) {
+    struct io *out = io->out;
+    int_16 uname_len = 0;
+    int_16 aname_len = 0;
+    int_16 tag = find_free_tag (io);
+    while (uname[uname_len]) uname_len++;
+    while (aname[aname_len]) aname_len++;
+
+    int_32 ol = tolel (4 + 1 + 2 + 4 + 4 + 2 + 2 + uname_len + aname_len);
+    int_8 c   = Tattach;
+
+    tag       = tolew (tag);
+    fid       = tolel (fid);
+    afid      = tolel (afid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+    io_collect (out, (void *)&afid,      4);
+
+    int_16 slen = tolew (uname_len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, uname,              uname_len);
+
+    slen        = tolew (aname_len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, aname,              aname_len);
+
+    return tag;
+}
+
+/* reply messages */
+
 void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
+    kill_tag(io, tag);
+
     struct io *out = io->out;
     int_16 len = 0;
     while (version[len]) len++;
@@ -470,6 +580,8 @@ void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, cha
 }
 
 void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
+    kill_tag(io, tag);
+
     struct io *out = io->out;
     int_16 len = 0;
     while (string[len]) len++;
@@ -487,7 +599,27 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
     io_collect (out, (void *)&slen,      2);
     io_collect (out, string,             len);
 
-    tag = tolew (tag);
-
     debug (string);
+}
+
+void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
+                           struct duat_9p_qid qid) {
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol = tolel (4 + 1 + 2 + 13);
+    int_8 c   = Rattach;
+    tag       = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&qid.type,  1);
+
+    ol        = tolew (qid.version);
+    io_collect (out, (void *)&ol,        4);
+
+    int_64 t  = toleq (qid.path);
+    io_collect (out, (void *)&t,         8);
 }
