@@ -366,6 +366,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
             duat_9p_reply_error (io, tag, "Message too short.");
             return length;
+
         case Rversion:
             if (length > 13)
             {
@@ -397,12 +398,13 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     }
                 }
             }
-
             return length;
+
         case Tauth:
         case Rauth:
             debug ("auth");
             break;
+
         case Tattach:
             if (io->Tattach == (void *)0) break;
 
@@ -421,10 +423,10 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 return length;
             }
-
             break;
+
         case Rattach:
-            if (io->Rattach == (void *)0) break;
+            if (io->Rattach == (void *)0) return length;
 
             if (length == 20) {
                 struct duat_9p_qid qid = {
@@ -434,19 +436,51 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 };
 
                 io->Rattach(io, tag, qid);
-
-                return length;
             }
+            return length;
 
-            break;
         case Rerror:
-            debug ("error");
-            break;
+            if (io->Rerror == (void *)0) return length;
+
+            if (length > 9) {
+                char *message = pop_string(b, &i, length);
+                if (message != (char *)0) return length;
+
+                io->Rerror(io, tag, message);
+            }
+            return length;
+
         case Tflush:
         case Rflush:
             debug ("flush");
             break;
         case Twalk:
+            if (io->Twalk == (void *)0) break;
+
+            if (length >= 17) {
+                int_32 tfid = popl (b + 7);
+                int_32 nfid = popl (b + 11);
+                int_16 namec = popw (b + 15);
+                int_16 namei = 0;
+                char *names[namec];
+
+                i = 17;
+
+                for (; namei < namec; namei++) {
+                    names[namei] = pop_string(b, &i, length);
+
+                    if (names[namei] == (char *)0) {
+                        duat_9p_reply_error (io, tag, "Malformed message.");
+                        return length;
+                    }
+                }
+
+                io->Twalk(io, tag, tfid, nfid, namec, names);
+
+                return length;
+            }
+            break;
+
         case Rwalk:
             debug ("walk");
             break;

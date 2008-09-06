@@ -91,7 +91,7 @@ struct duat_9p_io {
     void (*Tattach) (struct duat_9p_io *, int_16, int_32, int_32, char *,
                      char *);
     void (*Tflush)  (struct duat_9p_io *, int_16);
-    void (*Twalk)   (struct duat_9p_io *, int_16);
+    void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
     void (*Topen)   (struct duat_9p_io *, int_16);
     void (*Tcreate) (struct duat_9p_io *, int_16);
     void (*Tread)   (struct duat_9p_io *, int_16);
@@ -103,7 +103,7 @@ struct duat_9p_io {
 
     void (*Rauth)   (struct duat_9p_io *, int_16);
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
-    void (*Rerror)  (struct duat_9p_io *, int_16);
+    void (*Rerror)  (struct duat_9p_io *, int_16, char *);
     void (*Rflush)  (struct duat_9p_io *, int_16);
     void (*Rwalk)   (struct duat_9p_io *, int_16);
     void (*Ropen)   (struct duat_9p_io *, int_16);
@@ -132,7 +132,7 @@ int_16 duat_9p_version (struct duat_9p_io *, int_32, char *);
 int_16 duat_9p_auth    (struct duat_9p_io *, int_32, char *, char *);
 int_16 duat_9p_attach  (struct duat_9p_io *, int_32, int_32, char *, char *);
 int_16 duat_9p_flush   (struct duat_9p_io *, int_16);
-int_16 duat_9p_walk    (struct duat_9p_io *, int_32, int_32, char **);
+int_16 duat_9p_walk    (struct duat_9p_io *, int_32, int_32, int_16, char **);
 int_16 duat_9p_open    (struct duat_9p_io *, int_32, int_8);
 int_16 duat_9p_create  (struct duat_9p_io *, int_32, char *, int_32, int_8);
 int_16 duat_9p_read    (struct duat_9p_io *, int_32, int_64, int_32);
@@ -146,7 +146,8 @@ void duat_9p_reply_version (struct duat_9p_io *, int_16, int_32, char *);
 void duat_9p_reply_auth    (struct duat_9p_io *, int_16, struct duat_9p_qid);
 void duat_9p_reply_attach  (struct duat_9p_io *, int_16, struct duat_9p_qid);
 void duat_9p_reply_flush   (struct duat_9p_io *, int_16);
-void duat_9p_reply_walk    (struct duat_9p_io *, int_16, struct duat_9p_qid *);
+void duat_9p_reply_walk    (struct duat_9p_io *, int_16, int_16,
+                            struct duat_9p_qid *);
 void duat_9p_reply_open    (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
 void duat_9p_reply_create  (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
 void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, char *);

@@ -43,6 +43,27 @@
 
 #include <duat/9p.h>
 
+#include <curie/sexpr.h>
+
+static void sx_stdio_write (struct sexpr *sx) {
+    static struct sexpr_io *stdio = (struct sexpr_io *)0;
+
+    if (stdio == (struct sexpr_io *)0) stdio = sx_open_stdio();
+
+    sx_write (stdio, sx);
+    sx_destroy (sx);
+}
+
+static void debug (char *t) {
+    sx_stdio_write (cons(make_symbol("debug"), make_string(t)));
+}
+
+static void debug_num (int i) {
+    sx_stdio_write (cons(make_symbol("debug"), make_integer(i)));
+}
+
+
+
 void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
               char *uname, char *aname)
 {
@@ -51,10 +72,16 @@ void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
     duat_9p_reply_attach (io, tag, qid);
 }
 
+void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+            int_16 c, char **names)
+{
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
     io->Tattach = Tattach;
+    io->Twalk   = Twalk;
 
     multiplex_add_duat_9p (io, (void *)0);
 }
