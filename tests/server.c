@@ -64,16 +64,16 @@ static void debug_num (int i) {
 
 
 
-void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
-              char *uname, char *aname)
+static void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+                     char *uname, char *aname)
 {
     struct duat_9p_qid qid = { 0, 0, 0 };
 
     duat_9p_reply_attach (io, tag, qid);
 }
 
-void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
-            int_16 c, char **names)
+static void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+                   int_16 c, char **names)
 {
     struct duat_9p_qid qid[c];
     int_16 i = 0;
@@ -88,11 +88,22 @@ void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
     duat_9p_reply_walk (io, tag, c, qid);
 }
 
+static void Tstat (struct duat_9p_io *io, int_16 tag, int_32 fid)
+{
+    struct duat_9p_qid qid = { 0, 1, 2 };
+
+    duat_9p_reply_stat (io, tag, 1, 1, qid,
+                        DMUREAD | DMOREAD | DMGREAD,
+                        1, 1, 800,
+                        "nyoron", "nyu", "kittens", "nyu");
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
     io->Tattach = Tattach;
     io->Twalk   = Twalk;
+    io->Tstat   = Tstat;
 
     multiplex_add_duat_9p (io, (void *)0);
 }

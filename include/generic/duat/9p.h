@@ -69,17 +69,30 @@ struct duat_9p_fid_metadata {
 #define NO_TAG_9P ((int_16)~0)
 #define NO_FID_9P ((int_32)~0)
 
-#define QTDIR     ((int_8) 0x10000000)
-#define QTAPPEND  ((int_8) 0x01000000)
-#define QTEXCL    ((int_8) 0x00100000)
-#define QTAUTH    ((int_8) 0x00001000)
-#define QTTMP     ((int_8) 0x00000100)
 
-#define DMDIR     ((int_32)(QTDIR << 24))
-#define DMAPPEND  ((int_32)(QTDIR << 24))
-#define DMEXCL    ((int_32)(QTDIR << 24))
-#define DMAUTH    ((int_32)(QTDIR << 24))
-#define DMTMP     ((int_32)(QTDIR << 24))
+#define QTDIR     ((int_8)  0x80)
+#define QTAPPEND  ((int_8)  0x40)
+#define QTEXCL    ((int_8)  0x20)
+#define QTAUTH    ((int_8)   0x8)
+#define QTTMP     ((int_8)   0x4)
+
+#define DMDIR     ((int_32) (QTDIR << 24))
+#define DMAPPEND  ((int_32) (QTDIR << 24))
+#define DMEXCL    ((int_32) (QTDIR << 24))
+#define DMAUTH    ((int_32) (QTDIR << 24))
+#define DMTMP     ((int_32) (QTDIR << 24))
+
+#define DMUREAD   ((int_32)0x100)
+#define DMUWRITE  ((int_32) 0x80)
+#define DMUEXEC   ((int_32) 0x40)
+
+#define DMGREAD   ((int_32) 0x20)
+#define DMGWRITE  ((int_32) 0x10)
+#define DMGEXEC   ((int_32)  0x8)
+
+#define DMOREAD   ((int_32)  0x4)
+#define DMOWRITE  ((int_32)  0x2)
+#define DMOEXEC   ((int_32)  0x1)
 
 struct duat_9p_io {
     struct io *in, *out;
@@ -99,9 +112,9 @@ struct duat_9p_io {
     void (*Tcreate) (struct duat_9p_io *, int_16);
     void (*Tread)   (struct duat_9p_io *, int_16);
     void (*Twrite)  (struct duat_9p_io *, int_16);
-    void (*Tclunk)  (struct duat_9p_io *, int_16);
+    void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
     void (*Tremove) (struct duat_9p_io *, int_16);
-    void (*Tstat)   (struct duat_9p_io *, int_16);
+    void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
     void (*Twstat)  (struct duat_9p_io *, int_16);
 
     void (*Rauth)   (struct duat_9p_io *, int_16);
@@ -115,7 +128,7 @@ struct duat_9p_io {
     void (*Rwrite)  (struct duat_9p_io *, int_16);
     void (*Rclunk)  (struct duat_9p_io *, int_16);
     void (*Rremove) (struct duat_9p_io *, int_16);
-    void (*Rstat)   (struct duat_9p_io *, int_16);
+    void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
     void (*Rwstat)  (struct duat_9p_io *, int_16);
 
     void *arbitrary;
@@ -157,11 +170,10 @@ void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, char *);
 void duat_9p_reply_write   (struct duat_9p_io *, int_16, int_32);
 void duat_9p_reply_clunk   (struct duat_9p_io *, int_16);
 void duat_9p_reply_remove  (struct duat_9p_io *, int_16);
-void duat_9p_reply_stat    (struct duat_9p_io *, int_16); /* still some stuff missing */
+void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
 void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
 
 void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *);
-
 
 struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
 struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);

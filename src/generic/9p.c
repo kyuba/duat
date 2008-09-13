@@ -308,26 +308,30 @@ static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
         i++;
     }
 
-    md->path_block_size = size;
-    char *pathb         = aalloc (size);
+    if (size > 0) {
+        md->path_block_size = size;
+        char *pathb         = aalloc (size);
 
-    int_16 b = pathc * sizeof (char *);
+        int_16 b = pathc * sizeof (char *);
 
-    for (i = 0; i < pathc; i++) {
-        int_16 j = 0;
+        for (i = 0; i < pathc; i++) {
+            int_16 j = 0;
 
-        while (path[i][j]) {
-            pathb[b]    = path[i][j];
+            while (path[i][j]) {
+                pathb[b]    = path[i][j];
 
+                b++;
+                j++;
+            }
+
+            pathb[b]        = (char)0;
             b++;
-            j++;
         }
 
-        pathb[b]        = (char)0;
-        b++;
+        md->path            = path;
+    } else {
+        md->path            = (char **)0;
     }
-
-    md->path            = path;
 
     tree_add_node_value (io->tags, (int_pointer)fid, (void *)md);
 }
@@ -509,6 +513,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 char *aname = pop_string(b, &i, length);
                 if (aname == (char *)0) break;
 
+                register_fid (io, tfid, 0, (char **)0);
+
                 io->Tattach(io, tag, tfid, afid, uname, aname);
 
                 return length;
@@ -618,16 +624,48 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             debug ("write");
             break;
         case Tclunk:
-        case Rclunk:
-            debug ("clunk");
+            if (length >= 11) {
+                int_32 fid = popl (b + 7);
+
+                if (io->Tclunk == (void *)0)
+                {
+                    duat_9p_reply_clunk (io, tag);
+                }
+                else
+                {
+                    io->Tclunk(io, tag, fid);
+                }
+
+                kill_fid (io, fid);
+
+                return length;
+            }
             break;
+        case Rclunk:
+            if (io->Rclunk != (void *)0)
+            {
+                io->Rclunk(io, tag);
+            }
+            return length;
+
         case Tremove:
         case Rremove:
             debug ("remove");
             break;
         case Tstat:
+            if (io->Tstat == (void *)0) break;
+
+            if (length >= 11) {
+                int_32 fid = popl (b + 7);
+
+                io->Tstat(io, tag, fid);
+
+                return length;
+            }
+            break;
+
         case Rstat:
-            debug ("stat");
+            debug ("Rstat");
             break;
         case Twstat:
         case Rwstat:
@@ -644,6 +682,17 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     io_close (io->out);*/
 
     return length;
+}
+
+/* utility functions */
+
+static void collect_qid (struct io *out, struct duat_9p_qid *qid) {
+    int_32 ol = tolel (qid->version);
+    int_64 t  = toleq (qid->path);
+
+    io_collect (out, (void *)&(qid->type), 1);
+    io_collect (out, (void *)&ol,          4);
+    io_collect (out, (void *)&t,           8);
 }
 
 /* request messages */
@@ -675,6 +724,8 @@ int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
 int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
                         char *uname, char *aname)
 {
+    register_fid (io, fid, 0, (char **)0);
+
     struct io *out = io->out;
     int_16 uname_len = 0;
     int_16 aname_len = 0;
@@ -751,6 +802,46 @@ int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
     return tag;
 }
 
+
+int_16 duat_9p_stat    (struct duat_9p_io *io, int_32 fid)
+{
+    struct io *out = io->out;
+    int_16 tag = find_free_tag (io);
+
+    int_32 ol  = tolel(4 + 1 + 2 + 4);
+    int_8 c    = Tstat;
+
+    tag        = tolew (tag);
+    fid        = tolel (fid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+
+    return tag;
+}
+
+int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
+    kill_fid(io, fid);
+
+    struct io *out = io->out;
+    int_16 tag  = find_free_tag (io);
+
+    int_32 ol   = tolel (4 + 1 + 2 + 4);
+    int_8 c     = Tclunk;
+
+    tag         = tolew (tag);
+    fid         = tolel (fid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+
+    return tag;
+}
+
 /* reply messages */
 
 void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
@@ -813,13 +904,8 @@ void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
     io_collect (out, (void *)&ol,        4);
     io_collect (out, (void *)&c,         1);
     io_collect (out, (void *)&tag,       2);
-    io_collect (out, (void *)&qid.type,  1);
 
-    ol        = tolew (qid.version);
-    io_collect (out, (void *)&ol,        4);
-
-    int_64 t  = toleq (qid.path);
-    io_collect (out, (void *)&t,         8);
+    collect_qid (out, &qid);
 }
 
 void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
@@ -841,17 +927,106 @@ void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
     io_collect (out, (void *)&tag,             2);
 
     int_16  i = 0;
-    int_64  t = 0;
 
     while (i < qidc) {
-        io_collect (out, (void *)&qid[i].type, 1);
-
-        ol    = tolew (qid[i].version);
-        io_collect (out, (void *)&ol,          4);
-
-        t     = toleq (qid[i].path);
-        io_collect (out, (void *)&t,           8);
+        collect_qid (out, &(qid[i]));
 
         i++;
     }
+}
+
+void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
+                           int_32 dev, struct duat_9p_qid qid, int_32 mode,
+                           int_32 atime, int_32 mtime, int_64 length,
+                           char *name, char *uid, char *gid, char *muid)
+{
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol   = 0;
+    int_16 nlen = 0;
+    if (name != (char *)0) while (name[nlen]) nlen++;
+    int_16 ulen = 0;
+    if (uid != (char *)0)  while (uid[ulen])  ulen++;
+    int_16 glen = 0;
+    if (gid != (char *)0)  while (gid[glen])  glen++;
+    int_16 mlen = 0;
+    if (muid != (char *)0) while (muid[mlen]) mlen++;
+
+    int_16 slen =   2
+                  + 4
+                  + 13
+                  + 4
+                  + 4
+                  + 4
+                  + 8
+                  + 2 + nlen
+                  + 2 + ulen
+                  + 2 + glen
+                  + 2 + mlen;
+
+    ol          = tolel (4 + 1 + 2 + 2 + slen);
+    int_8 c     = Rstat;
+
+    tag         = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+
+    slen        = tolew (slen);
+    io_collect (out, (void *)&slen,      2);
+
+    type        = tolew (type);
+    io_collect (out, (void *)&type,      2);
+
+    dev        = tolel (dev);
+    io_collect (out, (void *)&dev,       4);
+
+    collect_qid (out, &qid);
+
+    mode       = tolel (mode);
+    io_collect (out, (void *)&mode,      4);
+    atime      = tolel (atime);
+    io_collect (out, (void *)&atime,     4);
+    mtime      = tolel (mtime);
+    io_collect (out, (void *)&mtime,     4);
+    length     = toleq (length);
+    io_collect (out, (void *)&length,    8);
+
+    slen        = tolew (nlen);
+    io_collect (out, (void *)&slen,      2);
+    if (nlen > 0)
+        io_collect (out, name,           nlen);
+
+    slen        = tolew (ulen);
+    io_collect (out, (void *)&slen,      2);
+    if (ulen > 0)
+        io_collect (out, uid,            ulen);
+
+    slen        = tolew (glen);
+    io_collect (out, (void *)&slen,      2);
+    if (glen > 0)
+        io_collect (out, gid,            glen);
+
+    slen        = tolew (mlen);
+    io_collect (out, (void *)&slen,      2);
+    if (mlen > 0)
+        io_collect (out, muid,           mlen);
+}
+
+void duat_9p_reply_clunk   (struct duat_9p_io *io, int_16 tag) {
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol   = tolel (4 + 1 + 2);
+    int_8 c     = Rclunk;
+
+    tag         = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
 }
