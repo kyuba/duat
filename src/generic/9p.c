@@ -677,8 +677,23 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tflush:
-        case Rflush:
+            if (io->Tflush == (void *)0) break;
+
+            if (length >= 9) {
+                int_16 otag = popw (b + 7);
+
+                io->Tflush(io, tag, otag);
+
+                return length;
+            }
             break;
+
+        case Rflush:
+            if (io->Rflush != (void *)0)
+            {
+                io->Rflush(io, tag);
+            }
+            return length;
 
         case Twalk:
             if (io->Twalk == (void *)0) break;
@@ -1205,11 +1220,11 @@ int_16 duat_9p_write   (struct duat_9p_io *io, int_32 fid, int_64 offset,
     return otag;
 }
 
-int_16 duat_9p_wstat      (struct duat_9p_io *io, int_32 fid,
-                           int_16 type, int_32 dev, struct duat_9p_qid qid,
-                           int_32 mode, int_32 atime, int_32 mtime,
-                           int_64 length, char *name, char *uid, char *gid,
-                           char *muid)
+int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
+                        int_16 type, int_32 dev, struct duat_9p_qid qid,
+                        int_32 mode, int_32 atime, int_32 mtime,
+                        int_64 length, char *name, char *uid, char *gid,
+                        char *muid)
 {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
@@ -1232,6 +1247,19 @@ int_16 duat_9p_wstat      (struct duat_9p_io *io, int_32 fid,
 
     return otag;
 }
+
+int_16 duat_9p_flush   (struct duat_9p_io *io, int_16 oxtag) {
+    struct io *out = io->out;
+    int_16 otag = find_free_tag (io);
+
+    collect_header (out, 2, Tflush, otag);
+
+    oxtag       = tolel (oxtag);
+    io_collect (out, (void *)&oxtag,     2);
+
+    return otag;
+}
+
 
 /* reply messages */
 
@@ -1356,4 +1384,8 @@ void duat_9p_reply_write   (struct duat_9p_io *io, int_16 tag, int_32 count) {
 
 void duat_9p_reply_wstat   (struct duat_9p_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rwstat, tag);
+}
+
+void duat_9p_reply_flush   (struct duat_9p_io *io, int_16 tag) {
+    collect_header_reply (io, 0, Rflush, tag);
 }

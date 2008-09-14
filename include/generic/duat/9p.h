@@ -118,7 +118,7 @@ struct duat_9p_io {
     void (*Tauth)   (struct duat_9p_io *, int_16, int_32, char *, char *);
     void (*Tattach) (struct duat_9p_io *, int_16, int_32, int_32, char *,
                      char *);
-    void (*Tflush)  (struct duat_9p_io *, int_16);
+    void (*Tflush)  (struct duat_9p_io *, int_16, int_16);
     void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
     void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
     void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
