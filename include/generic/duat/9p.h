@@ -123,7 +123,7 @@ struct duat_9p_io {
     void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
     void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
     void (*Tread)   (struct duat_9p_io *, int_16, int_32, int_64, int_32);
-    void (*Twrite)  (struct duat_9p_io *, int_16);
+    void (*Twrite)  (struct duat_9p_io *, int_16, int_32, int_64, int_32, int_8 *);
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
     void (*Tremove) (struct duat_9p_io *, int_16);
     void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
@@ -137,7 +137,7 @@ struct duat_9p_io {
     void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
     void (*Rcreate) (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
     void (*Rread)   (struct duat_9p_io *, int_16, int_32, int_8 *);
-    void (*Rwrite)  (struct duat_9p_io *, int_16);
+    void (*Rwrite)  (struct duat_9p_io *, int_16, int_32);
     void (*Rclunk)  (struct duat_9p_io *, int_16);
     void (*Rremove) (struct duat_9p_io *, int_16);
     void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);

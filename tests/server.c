@@ -155,6 +155,20 @@ static void Tread (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset,
     }
 }
 
+static void Twrite (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
+{
+    char dd[count + 1];
+    int i;
+
+    for (i = 0; i < count; i++) {
+        dd[i] = (char)data[i];
+    }
+    dd[i] = 0;
+
+    debug (dd);
+    duat_9p_reply_write (io, tag, count);
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
@@ -164,6 +178,7 @@ void on_connect(struct io *in, struct io *out, void *p) {
     io->Topen   = Topen;
     io->Tcreate = Tcreate;
     io->Tread   = Tread;
+    io->Twrite  = Twrite;
 
     multiplex_add_duat_9p (io, (void *)0);
 }
