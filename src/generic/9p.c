@@ -43,36 +43,6 @@
 static unsigned int pop_message (unsigned char *, int_32, struct duat_9p_io *,
                                  void *);
 
-#define DEBUG
-
-#ifdef DEBUG
-#include <curie/sexpr.h>
-
-static void sx_stdio_write (struct sexpr *sx) {
-    static struct sexpr_io *stdio = (struct sexpr_io *)0;
-
-    if (stdio == (struct sexpr_io *)0) stdio = sx_open_stdio();
-
-    sx_write (stdio, sx);
-    sx_destroy (sx);
-}
-
-static void debug (char *t) {
-    sx_stdio_write (cons(make_symbol("debug"), make_string(t)));
-}
-
-static int debug_num (int i) {
-    sx_stdio_write (cons(make_symbol("debug"), make_integer(i)));
-    return i;
-}
-
-#else
-
-#define debug(text)
-#define debug_num(num) num
-
-#endif
-
 struct io_element {
     struct duat_9p_io *io;
     void *data;
@@ -263,12 +233,10 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     return (void *)bs;
 }
 
-int_16 duat_9p_prepare_stat_buffer (struct duat_9p_io *io, int_8 **buffer,
-                                    int_16 type, int_32 dev,
-                                    struct duat_9p_qid *qid, int_32 mode,
-                                    int_32 atime, int_32 mtime, int_64 length,
-                                    char *name, char *uid, char *gid,
-                                    char *muid)
+int_16 duat_9p_prepare_stat_buffer
+        (struct duat_9p_io *io, int_8 **buffer, int_16 type, int_32 dev,
+         struct duat_9p_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
+         int_64 length, char *name, char *uid, char *gid, char *muid)
 {
     int_16 nlen = 0;
     if (name != (char *)0) while (name[nlen]) nlen++;
@@ -348,6 +316,35 @@ int_16 duat_9p_prepare_stat_buffer (struct duat_9p_io *io, int_8 **buffer,
     *buffer = b;
     return sslen;
 }
+
+void duat_9p_parse_stat_buffer
+        (struct duat_9p_io *io, int_32 slen, int_8 *b, int_16 *type,
+         int_32 *dev, struct duat_9p_qid *qid, int_32 *mode, int_32 *atime,
+         int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
+         char **muid)
+{
+    if (slen < 43) return;
+    int_16 sl = popw (b);
+
+    if (slen < sl) return;
+
+    *type        = popw (b + 2);
+    *dev         = popl (b + 4);
+    qid->type    = b[8];
+    qid->version = popl (b + 9);
+    qid->path    = popq (b + 13);
+    *mode        = popl (b + 21);
+    *atime       = popl (b + 25);
+    *mtime       = popl (b + 29);
+    *length      = popq (b + 33);
+
+    int_32 i = 41;
+    *name        = pop_string(b, &i, (int_32)sl);
+    *uid         = pop_string(b, &i, (int_32)sl);
+    *gid         = pop_string(b, &i, (int_32)sl);
+    *muid        = pop_string(b, &i, (int_32)sl);
+}
+
 
 static void register_tag (struct duat_9p_io *io, int_16 tag) {
     struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
@@ -603,7 +600,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
         case Tauth:
         case Rauth:
-            debug ("auth");
             break;
 
         case Tattach:
@@ -655,7 +651,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
         case Tflush:
         case Rflush:
-            debug ("flush");
             break;
 
         case Twalk:
@@ -727,7 +722,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Ropen:
-            if (io->Ropen == (void *)0) break;
+            if (io->Ropen == (void *)0) return length;
 
             if (length >= 24) {
                 struct duat_9p_qid qid = {
@@ -761,7 +756,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rcreate:
-            if (io->Rcreate == (void *)0) break;
+            if (io->Rcreate == (void *)0) return length;
 
             if (length >= 24) {
                 struct duat_9p_qid qid = {
@@ -789,7 +784,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rread:
-            if (io->Rread == (void *)0) break;
+            if (io->Rread == (void *)0) return length;
 
             if (length >= 11) {
                 int_32 count = popl (b + 7);
@@ -818,7 +813,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rwrite:
-            if (io->Rwrite == (void *)0) break;
+            if (io->Rwrite == (void *)0) return length;
 
             if (length >= 11) {
                 int_32 count = popl (b + 7);
@@ -854,7 +849,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
         case Tremove:
         case Rremove:
-            debug ("remove");
             break;
         case Tstat:
             if (io->Tstat == (void *)0) break;
@@ -869,11 +863,26 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rstat:
-            debug ("Rstat");
-            break;
+            if (io->Rstat == (void *)0) return length;
+
+            if (length >= 43) {
+                int_16 slen = popl (b + 7), type;
+                struct duat_9p_qid qid;
+                int_32 dev, mode, atime, mtime;
+                int_64 length;
+                char *name, *uid, *gid, *muid;
+
+                duat_9p_parse_stat_buffer
+                        (io, (int_32)slen, b + 9, &type, &dev, &qid, &mode,
+                         &atime, &mtime, &length, &name, &uid, &gid, &muid);
+
+                io->Rstat(io, tag, type, dev, qid, mode, atime, mtime, length,
+                          name, uid, gid, muid);
+            }
+            return length;
+
         case Twstat:
         case Rwstat:
-            debug ("wstat");
             break;
         default:
             /* bad/unrecognised message */
@@ -1198,8 +1207,6 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
     int_16 slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, string,             len);
-
-    debug (string);
 }
 
 void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,

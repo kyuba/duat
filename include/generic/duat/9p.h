@@ -189,9 +189,13 @@ void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *);
 
 struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
 struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
-int_16 duat_9p_prepare_stat_buffer (struct duat_9p_io *, int_8 **, int_16,
-                                    int_32, struct duat_9p_qid *, int_32,
-                                    int_32, int_32, int_64, char *, char *,
-                                    char *, char *);
+int_16 duat_9p_prepare_stat_buffer
+        (struct duat_9p_io *, int_8 **, int_16, int_32, struct duat_9p_qid *,
+         int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+
+void duat_9p_parse_stat_buffer
+        (struct duat_9p_io *, int_32, int_8 *, int_16 *, int_32 *,
+         struct duat_9p_qid *, int_32 *, int_32 *, int_32 *, int_64 *, char **,
+         char **, char **, char **);
 
 #endif
