@@ -127,7 +127,7 @@ struct duat_9p_io {
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
     void (*Tremove) (struct duat_9p_io *, int_16);
     void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
-    void (*Twstat)  (struct duat_9p_io *, int_16);
+    void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
 
     void (*Rauth)   (struct duat_9p_io *, int_16);
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);

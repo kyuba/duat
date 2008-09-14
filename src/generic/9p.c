@@ -865,8 +865,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
         case Rstat:
             if (io->Rstat == (void *)0) return length;
 
-            if (length >= 43) {
-                int_16 slen = popl (b + 7), type;
+            if (length >= 45) {
+                int_16 slen = popw (b + 7), type;
                 struct duat_9p_qid qid;
                 int_32 dev, mode, atime, mtime;
                 int_64 length;
@@ -882,8 +882,31 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Twstat:
-        case Rwstat:
+            if (io->Twstat == (void *)0) break;
+
+            if (length >= 49) {
+                int_16 slen = popw (b + 11), type;
+                struct duat_9p_qid qid;
+                int_32 fid = popl (b + 7), dev, mode, atime, mtime;
+                int_64 length;
+                char *name, *uid, *gid, *muid;
+
+                duat_9p_parse_stat_buffer
+                        (io, (int_32)slen, b + 13, &type, &dev, &qid, &mode,
+                         &atime, &mtime, &length, &name, &uid, &gid, &muid);
+
+                io->Twstat(io, tag, type, fid, dev, qid, mode, atime, mtime,
+                           length, name, uid, gid, muid);
+            }
             break;
+
+        case Rwstat:
+            if (io->Rwstat != (void *)0)
+            {
+                io->Rwstat(io, tag);
+            }
+            return length;
+
         default:
             /* bad/unrecognised message */
             break;
