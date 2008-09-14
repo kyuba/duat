@@ -290,11 +290,28 @@ static int_16 find_free_tag (struct duat_9p_io *io) {
     return tag;
 }
 
+struct duat_9p_tag_metadata *
+        duat_9p_tag_metadata (struct duat_9p_io *io, int_16 tag)
+{
+    struct tree_node *n =
+            tree_get_node(io->tags, (int_pointer)tag);
+
+    if (n != (struct tree_node *)0) {
+        return (struct duat_9p_tag_metadata *)node_get_value(n);
+    }
+
+    return (struct duat_9p_tag_metadata *)0;
+}
+
 static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
                           char **path) {
     struct duat_9p_fid_metadata *md = get_pool_mem (&duat_fid_pool);
     md->arbitrary       = (void *)0;
     md->path_count      = pathc;
+
+    md->open            = 0;
+    md->mode            = 0;
+    md->index           = 0;
 
     int_16 i = 0, size = 0;
 
@@ -309,32 +326,36 @@ static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
         i++;
     }
 
-    if (size > 0) {
-        md->path_block_size = size;
-        char *pathb         = aalloc (size);
+    md->path_block_size = size;
 
-        int_16 b = pathc * sizeof (char *);
+    if (size > 0) {
+        char *pathb     = aalloc (size);
+        char **pathbb   = (char **)pathb;
+
+        int_16 b        = pathc * sizeof (char *);
 
         for (i = 0; i < pathc; i++) {
-            int_16 j = 0;
+            int_16 j    = 0;
+
+            pathbb[i]   = pathb + b;
 
             while (path[i][j]) {
-                pathb[b]    = path[i][j];
+                pathb[b]= path[i][j];
 
                 b++;
                 j++;
             }
 
-            pathb[b]        = (char)0;
+            pathb[b]    = (char)0;
             b++;
         }
 
-        md->path            = path;
+        md->path        = pathb;
     } else {
-        md->path            = (char **)0;
+        md->path        = (char **)0;
     }
 
-    tree_add_node_value (io->tags, (int_pointer)fid, (void *)md);
+    tree_add_node_value (io->fids, (int_pointer)fid, (void *)md);
 }
 
 static void kill_fid (struct duat_9p_io *io, int_32 fid) {
@@ -345,24 +366,15 @@ static void kill_fid (struct duat_9p_io *io, int_32 fid) {
         struct duat_9p_fid_metadata *md =
                 (struct duat_9p_fid_metadata *)node_get_value(n);
 
-        afree (md->path_block_size, md->path);
+        if ((md->path_block_size > 0) &&
+            (md->path != (char **)0))
+        {
+            afree (md->path_block_size, md->path);
+        }
 
         free_pool_mem (md);
-        tree_remove_node (io->fids, fid);
+        tree_remove_node (io->fids, (int_pointer)fid);
     }
-}
-
-struct duat_9p_tag_metadata *
-        duat_9p_tag_metadata (struct duat_9p_io *io, int_16 tag)
-{
-    struct tree_node *n =
-            tree_get_node(io->tags, (int_pointer)tag);
-
-    if (n != (struct tree_node *)0) {
-        return (struct duat_9p_tag_metadata *)node_get_value(n);
-    }
-
-    return (struct duat_9p_tag_metadata *)0;
 }
 
 struct duat_9p_fid_metadata *
@@ -678,9 +690,31 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tread:
-        case Rread:
-            debug ("read");
+            if (io->Tread == (void *)0) break;
+
+            if (length >= 23) {
+                int_32 fid    = popl (b + 7);
+                int_64 offset = popq (b + 11);
+                int_32 count  = popl (b + 19);
+
+                io->Tread(io, tag, fid, offset, count);
+                return length;
+            }
             break;
+
+        case Rread:
+            if (io->Rread == (void *)0) break;
+
+            if (length >= 11) {
+                int_32 count = popl (b + 7);
+                int_8 *data  = b + 11;
+
+                if ((11 + count) <= length) {
+                    io->Rread(io, tag, count, data);
+                }
+            }
+            return length;
+
         case Twrite:
         case Rwrite:
             debug ("write");
@@ -955,6 +989,30 @@ int_16 duat_9p_create  (struct duat_9p_io *io, int_32 fid, char *name,
     return tag;
 }
 
+int_16 duat_9p_read    (struct duat_9p_io *io, int_32 fid, int_64 offset,
+                        int_32 count)
+{
+    struct io *out = io->out;
+    int_16 tag  = find_free_tag (io);
+
+    int_32 ol   = tolel (4 + 1 + 2 + 4 + 8 + 4);
+    int_8 c     = Tread;
+
+    tag         = tolew (tag);
+    fid         = tolel (fid);
+    offset      = toleq (offset);
+    count       = tolel (count);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+    io_collect (out, (void *)&offset,    8);
+    io_collect (out, (void *)&count,     4);
+
+    return tag;
+}
+
 /* reply messages */
 
 void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
@@ -1187,4 +1245,109 @@ void duat_9p_reply_create (struct duat_9p_io *io, int_16 tag,
     collect_qid (out, &qid);
 
     io_collect (out, (void *)&iounit,    4);
+}
+
+void duat_9p_reply_read   (struct duat_9p_io *io, int_16 tag, int_32 count,
+                           int_8 *data)
+{
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol = tolel (4 + 1 + 2 + 4 + count);
+    int_8 c   = Rread;
+    tag       = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+
+    ol        = tolel (count);
+    io_collect (out, (void *)&ol,        4);
+
+    io_collect (out, (void *)data,       count);
+}
+
+void duat_9p_reply_read_d (struct duat_9p_io *io, int_16 tag, int_16 type,
+                           int_32 dev, struct duat_9p_qid qid, int_32 mode,
+                           int_32 atime, int_32 mtime, int_64 length,
+                           char *name, char *uid, char *gid, char *muid)
+{
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol   = 0;
+    int_16 nlen = 0;
+    if (name != (char *)0) while (name[nlen]) nlen++;
+    int_16 ulen = 0;
+    if (uid != (char *)0)  while (uid[ulen])  ulen++;
+    int_16 glen = 0;
+    if (gid != (char *)0)  while (gid[glen])  glen++;
+    int_16 mlen = 0;
+    if (muid != (char *)0) while (muid[mlen]) mlen++;
+
+    int_16 slen =   2
+            + 4
+            + 13
+            + 4
+            + 4
+            + 4
+            + 8
+            + 2 + nlen
+            + 2 + ulen
+            + 2 + glen
+            + 2 + mlen;
+
+    ol          = tolel (4 + 1 + 2 + 4 + 2 + slen);
+    int_8 c     = Rread;
+
+    tag         = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+
+    int_32 sslen= tolel (slen + 2);
+    io_collect (out, (void *)&sslen,     4);
+
+    slen        = tolew (slen);
+    io_collect (out, (void *)&slen,      2);
+
+    type        = tolew (type);
+    io_collect (out, (void *)&type,      2);
+
+    dev        = tolel (dev);
+    io_collect (out, (void *)&dev,       4);
+
+    collect_qid (out, &qid);
+
+    mode       = tolel (mode);
+    io_collect (out, (void *)&mode,      4);
+    atime      = tolel (atime);
+    io_collect (out, (void *)&atime,     4);
+    mtime      = tolel (mtime);
+    io_collect (out, (void *)&mtime,     4);
+    length     = toleq (length);
+    io_collect (out, (void *)&length,    8);
+
+    slen        = tolew (nlen);
+    io_collect (out, (void *)&slen,      2);
+    if (nlen > 0)
+        io_collect (out, name,           nlen);
+
+    slen        = tolew (ulen);
+    io_collect (out, (void *)&slen,      2);
+    if (ulen > 0)
+        io_collect (out, uid,            ulen);
+
+    slen        = tolew (glen);
+    io_collect (out, (void *)&slen,      2);
+    if (glen > 0)
+        io_collect (out, gid,            glen);
+
+    slen        = tolew (mlen);
+    io_collect (out, (void *)&slen,      2);
+    if (mlen > 0)
+        io_collect (out, muid,           mlen);
 }

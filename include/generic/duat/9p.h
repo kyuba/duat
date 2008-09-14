@@ -67,6 +67,8 @@ struct duat_9p_fid_metadata {
 
     char     open;
     int_8    mode;
+
+    int_32   index;
 };
 
 #define NO_TAG_9P ((int_16)~0)
@@ -120,7 +122,7 @@ struct duat_9p_io {
     void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
     void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
     void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
-    void (*Tread)   (struct duat_9p_io *, int_16);
+    void (*Tread)   (struct duat_9p_io *, int_16, int_32, int_64, int_32);
     void (*Twrite)  (struct duat_9p_io *, int_16);
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
     void (*Tremove) (struct duat_9p_io *, int_16);
@@ -134,7 +136,7 @@ struct duat_9p_io {
     void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
     void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
     void (*Rcreate) (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
-    void (*Rread)   (struct duat_9p_io *, int_16);
+    void (*Rread)   (struct duat_9p_io *, int_16, int_32, int_8 *);
     void (*Rwrite)  (struct duat_9p_io *, int_16);
     void (*Rclunk)  (struct duat_9p_io *, int_16);
     void (*Rremove) (struct duat_9p_io *, int_16);
@@ -162,7 +164,7 @@ int_16 duat_9p_walk    (struct duat_9p_io *, int_32, int_32, int_16, char **);
 int_16 duat_9p_open    (struct duat_9p_io *, int_32, int_8);
 int_16 duat_9p_create  (struct duat_9p_io *, int_32, char *, int_32, int_8);
 int_16 duat_9p_read    (struct duat_9p_io *, int_32, int_64, int_32);
-int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, char *);
+int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, int_8 *);
 int_16 duat_9p_clunk   (struct duat_9p_io *, int_32);
 int_16 duat_9p_remove  (struct duat_9p_io *, int_32);
 int_16 duat_9p_stat    (struct duat_9p_io *, int_32);
@@ -176,7 +178,8 @@ void duat_9p_reply_walk    (struct duat_9p_io *, int_16, int_16,
                             struct duat_9p_qid *);
 void duat_9p_reply_open    (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
 void duat_9p_reply_create  (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
-void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, char *);
+void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, int_8 *);
+void duat_9p_reply_read_d  (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
 void duat_9p_reply_write   (struct duat_9p_io *, int_16, int_32);
 void duat_9p_reply_clunk   (struct duat_9p_io *, int_16);
 void duat_9p_reply_remove  (struct duat_9p_io *, int_16);

@@ -90,12 +90,23 @@ static void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
 
 static void Tstat (struct duat_9p_io *io, int_16 tag, int_32 fid)
 {
-    struct duat_9p_qid qid = { 0, 1, 2 };
+    struct duat_9p_fid_metadata *md = duat_9p_fid_metadata (io, fid);
 
-    duat_9p_reply_stat (io, tag, 1, 1, qid,
-                        DMUREAD | DMOREAD | DMGREAD,
-                        1, 1, 800,
-                        "nyoron", "nyu", "kittens", "nyu");
+    if (md->path_count == 0) {
+        struct duat_9p_qid qid = { QTDIR, 1, 2 };
+
+        duat_9p_reply_stat (io, tag, 1, 1, qid,
+                            DMDIR | DMUREAD | DMOREAD | DMGREAD,
+                            1, 1, 2,
+                            "/", "nyu", "kittens", "nyu");
+    } else {
+        struct duat_9p_qid qid = { 0, 1, 2 };
+
+        duat_9p_reply_stat (io, tag, 1, 1, qid,
+                            DMUREAD | DMOREAD | DMGREAD,
+                            1, 1, 800,
+                            "nyoron", "nyu", "kittens", "nyu");
+    }
 }
 
 static void Topen (struct duat_9p_io *io, int_16 tag, int_32 fid, int_8 mode)
@@ -114,6 +125,36 @@ static void Tcreate (struct duat_9p_io *io, int_16 tag, int_32 fid, char *name, 
     duat_9p_reply_create (io, tag, qid, 0x1000);
 }
 
+static void Tread (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 length)
+{
+    struct duat_9p_fid_metadata *md = duat_9p_fid_metadata (io, fid);
+
+    if (md->path_count == 0) {
+        struct duat_9p_qid qid = { 0, 1, 2 };
+
+        if (md->index == 0) {
+            duat_9p_reply_read_d (io, tag, 1, 1, qid,
+                                  DMUREAD | DMOREAD | DMGREAD,
+                                  1, 1, 6,
+                                  "nyoron", "nyu", "kittens", "nyu");
+        } else if (md->index == 1) {
+            duat_9p_reply_read_d (io, tag, 1, 1, qid,
+                                  DMUREAD | DMOREAD | DMGREAD,
+                                  1, 1, 6,
+                                  "nyoronZ", "nyu", "kittens", "nyu");
+        } else {
+            duat_9p_reply_read (io, tag, 0, (int_8 *)0);
+        }
+        (md->index)++;
+    } else {
+        if (offset == 0) {
+            duat_9p_reply_read (io, tag, 6, (int_8 *)"meow!\n");
+        } else {
+            duat_9p_reply_read (io, tag, 0, (int_8 *)0);
+        }
+    }
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
@@ -122,6 +163,7 @@ void on_connect(struct io *in, struct io *out, void *p) {
     io->Tstat   = Tstat;
     io->Topen   = Topen;
     io->Tcreate = Tcreate;
+    io->Tread   = Tread;
 
     multiplex_add_duat_9p (io, (void *)0);
 }
