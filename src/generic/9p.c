@@ -263,6 +263,92 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     return (void *)bs;
 }
 
+int_16 duat_9p_prepare_stat_buffer (struct duat_9p_io *io, int_8 **buffer,
+                                    int_16 type, int_32 dev,
+                                    struct duat_9p_qid *qid, int_32 mode,
+                                    int_32 atime, int_32 mtime, int_64 length,
+                                    char *name, char *uid, char *gid,
+                                    char *muid)
+{
+    int_16 nlen = 0;
+    if (name != (char *)0) while (name[nlen]) nlen++;
+    int_16 ulen = 0;
+    if (uid != (char *)0)  while (uid[ulen])  ulen++;
+    int_16 glen = 0;
+    if (gid != (char *)0)  while (gid[glen])  glen++;
+    int_16 mlen = 0;
+    if (muid != (char *)0) while (muid[mlen]) mlen++;
+
+    int_16 slen =   2
+                  + 4
+                  + 13
+                  + 4
+                  + 4
+                  + 4
+                  + 8
+                  + 2 + nlen
+                  + 2 + ulen
+                  + 2 + glen
+                  + 2 + mlen;
+    int_16 sslen = slen + 2;
+
+    int_8 *b = aalloc (sslen);
+
+    *((int_16 *)(b))      = tolew (slen);
+    *((int_16 *)(b + 2))  = tolew (type);
+    *((int_32 *)(b + 4))  = tolel (dev);
+    *((int_8  *)(b + 8))  = qid->type;
+    *((int_32 *)(b + 9))  = tolel (qid->version);
+    *((int_64 *)(b + 13)) = toleq (qid->path);
+    *((int_32 *)(b + 21)) = tolel (mode);
+    *((int_32 *)(b + 25)) = tolel (atime);
+    *((int_32 *)(b + 29)) = tolel (mtime);
+    *((int_64 *)(b + 33)) = toleq (length);
+
+    *((int_16 *)(b + 41)) = tolew (nlen);
+    int_16 i = 43;
+    if (name != (char *)0) {
+        int_16 j = 0;
+        while (j < nlen) {
+            b[i] = name[j];
+            j++, i++;
+        }
+    };
+
+    *((int_16 *)(b + i))  = tolew (ulen);
+    i += 2;
+    if (uid != (char *)0) {
+        int_16 j = 0;
+        while (j < ulen) {
+            b[i] = uid[j];
+            j++, i++;
+        }
+    };
+
+    *((int_16 *)(b + i))  = tolew (glen);
+    i += 2;
+    if (gid != (char *)0) {
+        int_16 j = 0;
+        while (j < glen) {
+            b[i] = gid[j];
+            j++, i++;
+        }
+    };
+
+    *((int_16 *)(b + i))  = tolew (mlen);
+    i += 2;
+    if (muid != (char *)0) {
+        int_16 j = 0;
+        while (j < mlen) {
+            b[i] = muid[j];
+            j++, i++;
+        }
+    };
+
+    *buffer = b;
+    return sslen;
+}
+
 static void register_tag (struct duat_9p_io *io, int_16 tag) {
     struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
     md->arbitrary = (void *)0;
@@ -1170,29 +1256,12 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
 
     struct io *out = io->out;
 
-    int_32 ol   = 0;
-    int_16 nlen = 0;
-    if (name != (char *)0) while (name[nlen]) nlen++;
-    int_16 ulen = 0;
-    if (uid != (char *)0)  while (uid[ulen])  ulen++;
-    int_16 glen = 0;
-    if (gid != (char *)0)  while (gid[glen])  glen++;
-    int_16 mlen = 0;
-    if (muid != (char *)0) while (muid[mlen]) mlen++;
+    int_8 *bb;
+    int_16 slen = duat_9p_prepare_stat_buffer
+            (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
+             gid, muid);
 
-    int_16 slen =   2
-                  + 4
-                  + 13
-                  + 4
-                  + 4
-                  + 4
-                  + 8
-                  + 2 + nlen
-                  + 2 + ulen
-                  + 2 + glen
-                  + 2 + mlen;
-
-    ol          = tolel (4 + 1 + 2 + 2 + 2 + slen);
+    int_32 ol   = tolel (4 + 1 + 2 + 2 + slen);
     int_8 c     = Rstat;
 
     tag         = tolew (tag);
@@ -1200,49 +1269,11 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
     io_collect (out, (void *)&ol,        4);
     io_collect (out, (void *)&c,         1);
     io_collect (out, (void *)&tag,       2);
+    tag         = tolew (slen);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)bb,         slen);
 
-    int_16 sslen= tolew (slen + 2);
-    io_collect (out, (void *)&sslen,     2);
-
-    slen        = tolew (slen);
-    io_collect (out, (void *)&slen,      2);
-
-    type        = tolew (type);
-    io_collect (out, (void *)&type,      2);
-
-    dev        = tolel (dev);
-    io_collect (out, (void *)&dev,       4);
-
-    collect_qid (out, &qid);
-
-    mode       = tolel (mode);
-    io_collect (out, (void *)&mode,      4);
-    atime      = tolel (atime);
-    io_collect (out, (void *)&atime,     4);
-    mtime      = tolel (mtime);
-    io_collect (out, (void *)&mtime,     4);
-    length     = toleq (length);
-    io_collect (out, (void *)&length,    8);
-
-    slen        = tolew (nlen);
-    io_collect (out, (void *)&slen,      2);
-    if (nlen > 0)
-        io_collect (out, name,           nlen);
-
-    slen        = tolew (ulen);
-    io_collect (out, (void *)&slen,      2);
-    if (ulen > 0)
-        io_collect (out, uid,            ulen);
-
-    slen        = tolew (glen);
-    io_collect (out, (void *)&slen,      2);
-    if (glen > 0)
-        io_collect (out, gid,            glen);
-
-    slen        = tolew (mlen);
-    io_collect (out, (void *)&slen,      2);
-    if (mlen > 0)
-        io_collect (out, muid,           mlen);
+    afree (slen, bb);
 }
 
 void duat_9p_reply_clunk   (struct duat_9p_io *io, int_16 tag) {
@@ -1321,90 +1352,6 @@ void duat_9p_reply_read   (struct duat_9p_io *io, int_16 tag, int_32 count,
     io_collect (out, (void *)&ol,        4);
 
     io_collect (out, (void *)data,       count);
-}
-
-void duat_9p_reply_read_d (struct duat_9p_io *io, int_16 tag, int_16 type,
-                           int_32 dev, struct duat_9p_qid qid, int_32 mode,
-                           int_32 atime, int_32 mtime, int_64 length,
-                           char *name, char *uid, char *gid, char *muid)
-{
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
-
-    int_32 ol   = 0;
-    int_16 nlen = 0;
-    if (name != (char *)0) while (name[nlen]) nlen++;
-    int_16 ulen = 0;
-    if (uid != (char *)0)  while (uid[ulen])  ulen++;
-    int_16 glen = 0;
-    if (gid != (char *)0)  while (gid[glen])  glen++;
-    int_16 mlen = 0;
-    if (muid != (char *)0) while (muid[mlen]) mlen++;
-
-    int_16 slen =   2
-            + 4
-            + 13
-            + 4
-            + 4
-            + 4
-            + 8
-            + 2 + nlen
-            + 2 + ulen
-            + 2 + glen
-            + 2 + mlen;
-
-    ol          = tolel (4 + 1 + 2 + 4 + 2 + slen);
-    int_8 c     = Rread;
-
-    tag         = tolew (tag);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-
-    int_32 sslen= tolel (slen + 2);
-    io_collect (out, (void *)&sslen,     4);
-
-    slen        = tolew (slen);
-    io_collect (out, (void *)&slen,      2);
-
-    type        = tolew (type);
-    io_collect (out, (void *)&type,      2);
-
-    dev        = tolel (dev);
-    io_collect (out, (void *)&dev,       4);
-
-    collect_qid (out, &qid);
-
-    mode       = tolel (mode);
-    io_collect (out, (void *)&mode,      4);
-    atime      = tolel (atime);
-    io_collect (out, (void *)&atime,     4);
-    mtime      = tolel (mtime);
-    io_collect (out, (void *)&mtime,     4);
-    length     = toleq (length);
-    io_collect (out, (void *)&length,    8);
-
-    slen        = tolew (nlen);
-    io_collect (out, (void *)&slen,      2);
-    if (nlen > 0)
-        io_collect (out, name,           nlen);
-
-    slen        = tolew (ulen);
-    io_collect (out, (void *)&slen,      2);
-    if (ulen > 0)
-        io_collect (out, uid,            ulen);
-
-    slen        = tolew (glen);
-    io_collect (out, (void *)&slen,      2);
-    if (glen > 0)
-        io_collect (out, gid,            glen);
-
-    slen        = tolew (mlen);
-    io_collect (out, (void *)&slen,      2);
-    if (mlen > 0)
-        io_collect (out, muid,           mlen);
 }
 
 void duat_9p_reply_write   (struct duat_9p_io *io, int_16 tag, int_32 count) {

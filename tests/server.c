@@ -131,17 +131,19 @@ static void Tread (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset,
 
     if (md->path_count == 0) {
         struct duat_9p_qid qid = { 0, 1, 2 };
+        int_8 *bb;
+        int_16 slen = 0;
 
         if (md->index == 0) {
-            duat_9p_reply_read_d (io, tag, 1, 1, qid,
-                                  DMUREAD | DMOREAD | DMGREAD,
-                                  1, 1, 6,
-                                  "nyoron", "nyu", "kittens", "nyu");
+            slen = duat_9p_prepare_stat_buffer
+                    (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
+                     1, 1, 6, "nyoron", "nyu", "kittens", "nyu");
+            duat_9p_reply_read (io, tag, slen, bb);
         } else if (md->index == 1) {
-            duat_9p_reply_read_d (io, tag, 1, 1, qid,
-                                  DMUREAD | DMOREAD | DMGREAD,
-                                  1, 1, 6,
-                                  "nyoronZ", "nyu", "kittens", "nyu");
+            slen = duat_9p_prepare_stat_buffer
+                    (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
+                     1, 1, 6, "nyoronZ", "nyu", "kittens", "nyu");
+            duat_9p_reply_read (io, tag, slen, bb);
         } else {
             duat_9p_reply_read (io, tag, 0, (int_8 *)0);
         }
