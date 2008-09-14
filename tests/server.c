@@ -38,31 +38,8 @@
 
 #include <curie/multiplex.h>
 #include <curie/network.h>
-#include <curie/exec.h>
-#include <curie/main.h>
 
 #include <duat/9p.h>
-
-#include <curie/sexpr.h>
-
-static void sx_stdio_write (struct sexpr *sx) {
-    static struct sexpr_io *stdio = (struct sexpr_io *)0;
-
-    if (stdio == (struct sexpr_io *)0) stdio = sx_open_stdio();
-
-    sx_write (stdio, sx);
-    sx_destroy (sx);
-}
-
-static void debug (char *t) {
-    sx_stdio_write (cons(make_symbol("debug"), make_string(t)));
-}
-
-static void debug_num (int i) {
-    sx_stdio_write (cons(make_symbol("debug"), make_integer(i)));
-}
-
-
 
 static void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
@@ -120,8 +97,6 @@ static void Tcreate (struct duat_9p_io *io, int_16 tag, int_32 fid, char *name, 
 {
     struct duat_9p_qid qid = { 0, 1, 2 };
 
-    debug (name);
-
     duat_9p_reply_create (io, tag, qid, 0x1000);
 }
 
@@ -167,7 +142,6 @@ static void Twrite (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset
     }
     dd[i] = 0;
 
-    debug (dd);
     duat_9p_reply_write (io, tag, count);
 }
 

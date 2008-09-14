@@ -115,7 +115,7 @@ struct duat_9p_io {
     struct tree *fids;
     struct tree *tags;
 
-    void (*Tauth)   (struct duat_9p_io *, int_16);
+    void (*Tauth)   (struct duat_9p_io *, int_16, int_32, char *, char *);
     void (*Tattach) (struct duat_9p_io *, int_16, int_32, int_32, char *,
                      char *);
     void (*Tflush)  (struct duat_9p_io *, int_16);
@@ -129,7 +129,7 @@ struct duat_9p_io {
     void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
     void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
 
-    void (*Rauth)   (struct duat_9p_io *, int_16);
+    void (*Rauth)   (struct duat_9p_io *, int_16, struct duat_9p_qid);
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
     void (*Rerror)  (struct duat_9p_io *, int_16, char *);
     void (*Rflush)  (struct duat_9p_io *, int_16);

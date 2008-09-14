@@ -557,13 +557,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                         return length;
                     }
 
-                    duat_9p_reply_error (io, tag, "Unsupported version.");
+                    duat_9p_reply_version(io, tag, msize, "unknown");
                     return length;
                 }
             }
-
-            duat_9p_reply_error (io, tag, "Message too short.");
-            return length;
+            break;
 
         case Rversion:
             if (length > 13)
@@ -599,8 +597,37 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tauth:
-        case Rauth:
+            if (io->Tauth == (void *)0) break;
+
+            if (length >= 15) {
+                int_32 afid = popl (b + 7);
+                i = 11;
+
+                char *uname = pop_string(b, &i, length);
+                if (uname == (char *)0) break;
+
+                char *aname = pop_string(b, &i, length);
+                if (aname == (char *)0) break;
+
+                io->Tauth(io, tag, afid, uname, aname);
+
+                return length;
+            }
             break;
+
+        case Rauth:
+            if (io->Rauth == (void *)0) return length;
+
+            if (length >= 20) {
+                struct duat_9p_qid qid = {
+                    .type = b[7],
+                    .version = popl (b + 8),
+                    .path = popq (b + 12)
+                };
+
+                io->Rauth(io, tag, qid);
+            }
+            return length;
 
         case Tattach:
             if (io->Tattach == (void *)0) break;
@@ -965,6 +992,35 @@ int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
     io_collect (out, version,            len);
 
     return NO_TAG_9P;
+}
+
+int_16 duat_9p_auth    (struct duat_9p_io *io, int_32 afid, char *uname,
+                        char *aname)
+{
+    register_fid (io, afid, 0, (char **)0);
+    int_16 otag = find_free_tag (io);
+
+    struct io *out = io->out;
+    int_16 uname_len = 0;
+    int_16 aname_len = 0;
+    while (uname[uname_len]) uname_len++;
+    while (aname[aname_len]) aname_len++;
+
+    afid      = tolel (afid);
+
+    collect_header (out, 4 + 2 + 2 + uname_len + aname_len, Tattach, otag);
+
+    io_collect (out, (void *)&afid,      4);
+
+    int_16 slen = tolew (uname_len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, uname,              uname_len);
+
+    slen        = tolew (aname_len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, aname,              aname_len);
+
+    return otag;
 }
 
 int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
