@@ -98,12 +98,20 @@ static void Tstat (struct duat_9p_io *io, int_16 tag, int_32 fid)
                         "nyoron", "nyu", "kittens", "nyu");
 }
 
+static void Topen (struct duat_9p_io *io, int_16 tag, int_32 fid, int_8 mode)
+{
+    struct duat_9p_qid qid = { 0, 1, 2 };
+
+    duat_9p_reply_open (io, tag, qid, 0x1000);
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
     io->Tattach = Tattach;
     io->Twalk   = Twalk;
     io->Tstat   = Tstat;
+    io->Topen   = Topen;
 
     multiplex_add_duat_9p (io, (void *)0);
 }

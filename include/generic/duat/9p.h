@@ -64,6 +64,9 @@ struct duat_9p_fid_metadata {
     int_16   path_count;
     int_16   path_block_size;
     char   **path;
+
+    char     open;
+    int_8    mode;
 };
 
 #define NO_TAG_9P ((int_16)~0)
@@ -94,6 +97,13 @@ struct duat_9p_fid_metadata {
 #define DMOWRITE  ((int_32)  0x2)
 #define DMOEXEC   ((int_32)  0x1)
 
+#define OREAD       0x0
+#define OWRITE      0x1
+#define OREADWRITE  0x2
+#define OEXEC       0x3
+#define OTRUNC     0x10
+#define ORCLOSE    0x40
+
 struct duat_9p_io {
     struct io *in, *out;
 
@@ -108,7 +118,7 @@ struct duat_9p_io {
                      char *);
     void (*Tflush)  (struct duat_9p_io *, int_16);
     void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
-    void (*Topen)   (struct duat_9p_io *, int_16);
+    void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
     void (*Tcreate) (struct duat_9p_io *, int_16);
     void (*Tread)   (struct duat_9p_io *, int_16);
     void (*Twrite)  (struct duat_9p_io *, int_16);
@@ -122,7 +132,7 @@ struct duat_9p_io {
     void (*Rerror)  (struct duat_9p_io *, int_16, char *);
     void (*Rflush)  (struct duat_9p_io *, int_16);
     void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
-    void (*Ropen)   (struct duat_9p_io *, int_16);
+    void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
     void (*Rcreate) (struct duat_9p_io *, int_16);
     void (*Rread)   (struct duat_9p_io *, int_16);
     void (*Rwrite)  (struct duat_9p_io *, int_16);
