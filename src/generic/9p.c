@@ -61,14 +61,15 @@ static void debug (char *t) {
     sx_stdio_write (cons(make_symbol("debug"), make_string(t)));
 }
 
-static void debug_num (int i) {
+static int debug_num (int i) {
     sx_stdio_write (cons(make_symbol("debug"), make_integer(i)));
+    return i;
 }
 
 #else
 
 #define debug(text)
-#define debug_num(num)
+#define debug_num(num) num
 
 #endif
 
@@ -966,7 +967,7 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
                   + 2 + glen
                   + 2 + mlen;
 
-    ol          = tolel (4 + 1 + 2 + 2 + slen);
+    ol          = tolel (4 + 1 + 2 + 2 + 2 + slen);
     int_8 c     = Rstat;
 
     tag         = tolew (tag);
@@ -974,6 +975,9 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
     io_collect (out, (void *)&ol,        4);
     io_collect (out, (void *)&c,         1);
     io_collect (out, (void *)&tag,       2);
+
+    int_16 sslen= tolew (slen + 2);
+    io_collect (out, (void *)&sslen,     2);
 
     slen        = tolew (slen);
     io_collect (out, (void *)&slen,      2);
