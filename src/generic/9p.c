@@ -850,6 +850,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
         case Tremove:
         case Rremove:
             break;
+
         case Tstat:
             if (io->Tstat == (void *)0) break;
 
@@ -914,8 +915,6 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     duat_9p_reply_error (io, tag,
                          "Function not implemented or malformed message.");
-/*    io_close (io->in);
-    io_close (io->out);*/
 
     return length;
 }
@@ -1185,6 +1184,39 @@ int_16 duat_9p_write   (struct duat_9p_io *io, int_32 fid, int_64 offset,
     return otag;
 }
 
+int_16 duat_9p_wstat      (struct duat_9p_io *io, int_32 fid,
+                           int_16 type, int_32 dev, struct duat_9p_qid qid,
+                           int_32 mode, int_32 atime, int_32 mtime,
+                           int_64 length, char *name, char *uid, char *gid,
+                           char *muid)
+{
+    struct io *out = io->out;
+    int_16 otag = find_free_tag (io),
+           tag  = tolew (tag);
+
+    int_8 *bb;
+    int_16 slen = duat_9p_prepare_stat_buffer
+            (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
+             gid, muid);
+
+    int_32 ol   = tolel (4 + 1 + 2 + 4 + 2 + slen);
+    int_8 c     = Twstat;
+
+    tag         = tolew (tag);
+    fid         = tolel (fid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+    tag         = tolew (slen);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)bb,         slen);
+
+    afree (slen, bb);
+
+    return otag;
+}
 
 /* reply messages */
 
@@ -1399,4 +1431,19 @@ void duat_9p_reply_write   (struct duat_9p_io *io, int_16 tag, int_32 count) {
     io_collect (out, (void *)&c,         1);
     io_collect (out, (void *)&tag,       2);
     io_collect (out, (void *)&count,     4);
+}
+
+void duat_9p_reply_wstat   (struct duat_9p_io *io, int_16 tag) {
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol   = tolel (4 + 1 + 2);
+    int_8 c     = Rwstat;
+
+    tag         = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
 }

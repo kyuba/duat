@@ -168,7 +168,7 @@ int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, int_8 *);
 int_16 duat_9p_clunk   (struct duat_9p_io *, int_32);
 int_16 duat_9p_remove  (struct duat_9p_io *, int_32);
 int_16 duat_9p_stat    (struct duat_9p_io *, int_32);
-int_16 duat_9p_wstat   (struct duat_9p_io *, int_32); /* missing some parameters */
+int_16 duat_9p_wstat   (struct duat_9p_io *, int_32, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
 
 void duat_9p_reply_version (struct duat_9p_io *, int_16, int_32, char *);
 void duat_9p_reply_auth    (struct duat_9p_io *, int_16, struct duat_9p_qid);
