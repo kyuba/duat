@@ -930,23 +930,34 @@ static void collect_qid (struct io *out, struct duat_9p_qid *qid) {
     io_collect (out, (void *)&t,           8);
 }
 
+static void collect_header (struct io *out, int_32 ol, int_8 c, int_16 tag) {
+    ol    = tolel (4 + 1 + 2 + ol);
+    tag   = tolew (tag);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+}
+
+static void collect_header_reply
+        (struct duat_9p_io *io, int_32 ol, int_8 c, int_16 tag)
+{
+    kill_tag(io, tag);
+
+    collect_header (io->out, ol, c, tag);
+}
+
 /* request messages */
 
 int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
     struct io *out = io->out;
     int_16 len = 0;
-    int_16 tag = NO_TAG_9P;
     while (version[len]) len++;
 
-    int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + len);
-    int_8 c = Tversion;
-
-    tag   = tolew (tag);
     msize = tolel (msize);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + 2 + len, Tversion, NO_TAG_9P);
+
     io_collect (out, (void *)&msize,     4);
 
     int_16 slen = tolew (len);
@@ -960,8 +971,7 @@ int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
                         char *uname, char *aname)
 {
     register_fid (io, fid, 0, (char **)0);
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
     struct io *out = io->out;
     int_16 uname_len = 0;
@@ -969,16 +979,12 @@ int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
     while (uname[uname_len]) uname_len++;
     while (aname[aname_len]) aname_len++;
 
-    int_32 ol = tolel (4 + 1 + 2 + 4 + 4 + 2 + 2 + uname_len + aname_len);
-    int_8 c   = Tattach;
-
-    tag       = tolew (tag);
     fid       = tolel (fid);
     afid      = tolel (afid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + 4 + 2 + 2 + uname_len + aname_len,
+                    Tattach, otag);
+
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&afid,      4);
 
@@ -997,10 +1003,9 @@ int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
                         int_16 pathcount, char **path)
 {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
-    int_32 ol  = 4 + 1 + 2 + 4 + 4 + 2 + (pathcount * 2);
+    int_32 ol  = 4 + 4 + 2 + (pathcount * 2);
     int_16 i   = 0, le[pathcount];
 
     while (i < pathcount)
@@ -1014,25 +1019,20 @@ int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
         i++;
     }
 
-    ol         = tolel (ol);
-    int_8 c    = Tattach;
-
-    tag        = tolew (tag);
     fid        = tolel (fid);
     newfid     = tolel (newfid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, ol, Twalk, otag);
+
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&newfid,    4);
 
-    tag        = tolew (pathcount);
-    io_collect (out, (void *)&tag,       2);
+    int_16 p   = tolew (pathcount);
+    io_collect (out, (void *)&p,         2);
 
     for (i = 0; i < pathcount; i++) {
-        tag    = tolew (le[i]);
-        io_collect (out, (void *)&tag,   2);
+        p      = tolew (le[i]);
+        io_collect (out, (void *)&p,     2);
         io_collect (out, (void *)path[i],le[i]);
     }
 
@@ -1043,18 +1043,12 @@ int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
 int_16 duat_9p_stat    (struct duat_9p_io *io, int_32 fid)
 {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
-    int_32 ol  = tolel(4 + 1 + 2 + 4);
-    int_8 c    = Tstat;
-
-    tag        = tolew (tag);
     fid        = tolel (fid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4, Tstat, otag);
+
     io_collect (out, (void *)&fid,       4);
 
     return otag;
@@ -1064,18 +1058,12 @@ int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
     kill_fid(io, fid);
 
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
-    int_32 ol   = tolel (4 + 1 + 2 + 4);
-    int_8 c     = Tclunk;
-
-    tag         = tolew (tag);
     fid         = tolel (fid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4, Tclunk, otag);
+
     io_collect (out, (void *)&fid,       4);
 
     return otag;
@@ -1083,20 +1071,13 @@ int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
 
 int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
-    int_32 ol   = tolel (4 + 1 + 2 + 4 + 1);
-    int_8 c     = Topen;
-
-    tag         = tolew (tag);
     fid         = tolel (fid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-    io_collect (out, (void *)&fid,       4);
+    collect_header (out, 4 + 1, Topen, otag);
 
+    io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&mode,      1);
 
     return otag;
@@ -1106,22 +1087,16 @@ int_16 duat_9p_create  (struct duat_9p_io *io, int_32 fid, char *name,
                         int_32 perm, int_8 mode)
 {
     int_16 len = 0;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
     while (name[len]) name++;
 
     struct io *out = io->out;
 
-    int_32 ol   = tolel (4 + 1 + 2 + 4 + 2 + len + 4 + 1);
-    int_8 c     = Tcreate;
-
-    tag         = tolew (tag);
     fid         = tolel (fid);
     perm        = tolel (fid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + 2 + len + 4 + 1, Tcreate, otag);
+
     io_collect (out, (void *)&fid,       4);
 
     int_16 slen = tolew (len);
@@ -1138,19 +1113,14 @@ int_16 duat_9p_read    (struct duat_9p_io *io, int_32 fid, int_64 offset,
                         int_32 count)
 {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
-
-    int_32 ol   = tolel (4 + 1 + 2 + 4 + 8 + 4);
-    int_8 c     = Tread;
+    int_16 otag = find_free_tag (io);
 
     fid         = tolel (fid);
     offset      = toleq (offset);
     count       = tolel (count);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + 8 + 4, Tread, otag);
+
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&offset,    8);
     io_collect (out, (void *)&count,     4);
@@ -1162,23 +1132,18 @@ int_16 duat_9p_write   (struct duat_9p_io *io, int_32 fid, int_64 offset,
                         int_32 count, int_8 *data)
 {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
-    int_32 ol = tolel (4 + 1 + 2 + 4 + count);
-    int_8 c   = Rread;
     fid       = tolel (fid);
     offset    = toleq (offset);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + count, Rwrite, otag);
+
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&offset,    8);
 
-    ol        = tolel (count);
-    io_collect (out, (void *)&ol,        4);
-
+    int_32 c  = tolel (count);
+    io_collect (out, (void *)&c,         4);
     io_collect (out, (void *)data,       count);
 
     return otag;
@@ -1191,26 +1156,20 @@ int_16 duat_9p_wstat      (struct duat_9p_io *io, int_32 fid,
                            char *muid)
 {
     struct io *out = io->out;
-    int_16 otag = find_free_tag (io),
-           tag  = tolew (tag);
+    int_16 otag = find_free_tag (io);
 
     int_8 *bb;
     int_16 slen = duat_9p_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
              gid, muid);
 
-    int_32 ol   = tolel (4 + 1 + 2 + 4 + 2 + slen);
-    int_8 c     = Twstat;
-
-    tag         = tolew (tag);
     fid         = tolel (fid);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header (out, 4 + 2 + slen, Twstat, otag);
+
     io_collect (out, (void *)&fid,       4);
-    tag         = tolew (slen);
-    io_collect (out, (void *)&tag,       2);
+    int_16 s    = tolew (slen);
+    io_collect (out, (void *)&s,         2);
     io_collect (out, (void *)bb,         slen);
 
     afree (slen, bb);
@@ -1221,21 +1180,14 @@ int_16 duat_9p_wstat      (struct duat_9p_io *io, int_32 fid,
 /* reply messages */
 
 void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
     int_16 len = 0;
     while (version[len]) len++;
 
-    int_32 ol = tolel (4 + 1 + 2 + 4 + 2 + len);
-    int_8 c = Rversion;
+    collect_header_reply (io, 4 + 2 + len, Rversion, tag);
 
-    tag   = tolew (tag);
+    struct io *out = io->out;
+
     msize = tolel (msize);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
     io_collect (out, (void *)&msize,     4);
 
     int_16 slen = tolew (len);
@@ -1244,20 +1196,12 @@ void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, cha
 }
 
 void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
     int_16 len = 0;
     while (string[len]) len++;
 
-    int_32 ol = tolel (4 + 1 + 2 + 2 + len);
-    int_8 c = Rerror;
+    collect_header_reply (io, 2 + len, Rversion, tag);
 
-    tag   = tolew (tag);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    struct io *out = io->out;
 
     int_16 slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
@@ -1267,45 +1211,22 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
 void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
                            struct duat_9p_qid qid)
 {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
-
-    int_32 ol = tolel (4 + 1 + 2 + 13);
-    int_8 c   = Rattach;
-    tag       = tolew (tag);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-
-    collect_qid (out, &qid);
+    collect_header_reply (io, 13, Rattach, tag);
+    collect_qid (io->out, &qid);
 }
 
 void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
                            struct duat_9p_qid *qid)
 {
-    kill_tag(io, tag);
+    collect_header_reply (io, 2 + qidc * 13, Rwalk, tag);
 
     struct io *out = io->out;
 
-    int_32 ol = tolel (4 + 1 + 2 + 2 + qidc * 13);
-    int_8 c   = Rwalk;
-    tag       = tolew (tag);
+    tag         = tolew (qidc);
+    io_collect (out, (void *)&tag,       2);
 
-    io_collect (out, (void *)&ol,              4);
-    io_collect (out, (void *)&c,               1);
-    io_collect (out, (void *)&tag,             2);
-
-    tag       = tolew (qidc);
-    io_collect (out, (void *)&tag,             2);
-
-    int_16  i = 0;
-
-    while (i < qidc) {
+    for (int_16 i = 0; i < qidc; i++) {
         collect_qid (out, &(qid[i]));
-
-        i++;
     }
 }
 
@@ -1314,23 +1235,15 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
                            int_32 atime, int_32 mtime, int_64 length,
                            char *name, char *uid, char *gid, char *muid)
 {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
-
     int_8 *bb;
     int_16 slen = duat_9p_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
              gid, muid);
 
-    int_32 ol   = tolel (4 + 1 + 2 + 2 + slen);
-    int_8 c     = Rstat;
+    collect_header_reply (io, 2 + slen, Rstat, tag);
 
-    tag         = tolew (tag);
+    struct io *out = io->out;
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
     tag         = tolew (slen);
     io_collect (out, (void *)&tag,       2);
     io_collect (out, (void *)bb,         slen);
@@ -1339,111 +1252,52 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
 }
 
 void duat_9p_reply_clunk   (struct duat_9p_io *io, int_16 tag) {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
-
-    int_32 ol   = tolel (4 + 1 + 2);
-    int_8 c     = Rclunk;
-
-    tag         = tolew (tag);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header_reply (io, 0, Rclunk, tag);
 }
 
 void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
                            struct duat_9p_qid qid, int_32 iounit)
 {
-    kill_tag(io, tag);
+    collect_header_reply (io, 13 + 4, Ropen, tag);
 
     struct io *out = io->out;
 
-    int_32 ol = tolel (4 + 1 + 2 + 13 + 4);
-    int_8 c   = Ropen;
-    tag       = tolew (tag);
-    iounit    = tolel (iounit);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-
     collect_qid (out, &qid);
-
+    iounit      = tolel (iounit);
     io_collect (out, (void *)&iounit,    4);
 }
 
 void duat_9p_reply_create (struct duat_9p_io *io, int_16 tag,
                            struct duat_9p_qid qid, int_32 iounit)
 {
-    kill_tag(io, tag);
-
     struct io *out = io->out;
 
-    int_32 ol = tolel (4 + 1 + 2 + 13 + 4);
-    int_8 c   = Rcreate;
-    tag       = tolew (tag);
-    iounit    = tolel (iounit);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header_reply (io, 13 + 4, Rcreate, tag);
 
     collect_qid (out, &qid);
-
+    iounit      = tolel (iounit);
     io_collect (out, (void *)&iounit,    4);
 }
 
 void duat_9p_reply_read   (struct duat_9p_io *io, int_16 tag, int_32 count,
                            int_8 *data)
 {
-    kill_tag(io, tag);
-
     struct io *out = io->out;
 
-    int_32 ol = tolel (4 + 1 + 2 + 4 + count);
-    int_8 c   = Rread;
-    tag       = tolew (tag);
+    collect_header_reply (io, 4 + count, Rread, tag);
 
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-
-    ol        = tolel (count);
-    io_collect (out, (void *)&ol,        4);
-
+    int_32 c    = tolel (count);
+    io_collect (out, (void *)&c,         4);
     io_collect (out, (void *)data,       count);
 }
 
 void duat_9p_reply_write   (struct duat_9p_io *io, int_16 tag, int_32 count) {
-    kill_tag(io, tag);
+    collect_header_reply (io, 4, Rwrite, tag);
 
-    struct io *out = io->out;
-
-    int_32 ol = tolel (4 + 1 + 2 + 4);
-    int_8 c = Rwrite;
-
-    tag   = tolew (tag);
-    count = tolel (count);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
-    io_collect (out, (void *)&count,     4);
+    count       = tolel (count);
+    io_collect (io->out, (void *)&count,     4);
 }
 
 void duat_9p_reply_wstat   (struct duat_9p_io *io, int_16 tag) {
-    kill_tag(io, tag);
-
-    struct io *out = io->out;
-
-    int_32 ol   = tolel (4 + 1 + 2);
-    int_8 c     = Rwstat;
-
-    tag         = tolew (tag);
-
-    io_collect (out, (void *)&ol,        4);
-    io_collect (out, (void *)&c,         1);
-    io_collect (out, (void *)&tag,       2);
+    collect_header_reply (io, 0, Rwstat, tag);
 }
