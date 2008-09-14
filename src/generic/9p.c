@@ -624,8 +624,9 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 int_8  mode = b[11];
 
                 io->Topen(io, tag, fid, mode);
+                return length;
             }
-            return length;
+            break;
 
         case Ropen:
             if (io->Ropen == (void *)0) break;
@@ -643,9 +644,39 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tcreate:
-        case Rcreate:
-            debug ("create");
+            if (io->Tcreate == (void *)0) break;
+
+            if (length >= 18) {
+                int_32 fid  = popl (b + 7);
+                i = 11;
+
+                char *name = pop_string(b, &i, length);
+                if (name == (char *)0) break;
+
+                if ((i + 5) < length) break;
+                int_32 perm = popl (b + i);
+                int_8  mode = b[i + 4];
+
+                io->Tcreate(io, tag, fid, name, perm, mode);
+                return length;
+            }
             break;
+
+        case Rcreate:
+            if (io->Rcreate == (void *)0) break;
+
+            if (length >= 24) {
+                struct duat_9p_qid qid = {
+                    .type    = b[7],
+                    .version = popl (b + 8),
+                    .path    = popq (b + 12)
+                };
+                int_32 iounit= popl (b + 20);
+
+                io->Rcreate(io, tag, qid, iounit);
+            }
+            return length;
+
         case Tread:
         case Rread:
             debug ("read");
@@ -874,8 +905,6 @@ int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
 }
 
 int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
-    kill_fid(io, fid);
-
     struct io *out = io->out;
     int_16 tag  = find_free_tag (io);
 
@@ -890,6 +919,37 @@ int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
     io_collect (out, (void *)&tag,       2);
     io_collect (out, (void *)&fid,       4);
 
+    io_collect (out, (void *)&mode,      1);
+
+    return tag;
+}
+
+int_16 duat_9p_create  (struct duat_9p_io *io, int_32 fid, char *name,
+                        int_32 perm, int_8 mode)
+{
+    int_16 len = 0;
+    while (name[len]) name++;
+
+    struct io *out = io->out;
+    int_16 tag  = find_free_tag (io);
+
+    int_32 ol   = tolel (4 + 1 + 2 + 4 + 2 + len + 4 + 1);
+    int_8 c     = Tcreate;
+
+    tag         = tolew (tag);
+    fid         = tolel (fid);
+    perm        = tolel (fid);
+
+    io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+    io_collect (out, (void *)&fid,       4);
+
+    int_16 slen = tolew (len);
+    io_collect (out, (void *)&slen,      2);
+    io_collect (out, (void *)&name,      len);
+
+    io_collect (out, (void *)&perm,      4);
     io_collect (out, (void *)&mode,      1);
 
     return tag;
@@ -1097,6 +1157,7 @@ void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
     int_32 ol = tolel (4 + 1 + 2 + 13 + 4);
     int_8 c   = Ropen;
     tag       = tolew (tag);
+    iounit    = tolel (iounit);
 
     io_collect (out, (void *)&ol,        4);
     io_collect (out, (void *)&c,         1);
@@ -1104,6 +1165,26 @@ void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
 
     collect_qid (out, &qid);
 
-    ol        = tolel (iounit);
+    io_collect (out, (void *)&iounit,    4);
+}
+
+void duat_9p_reply_create (struct duat_9p_io *io, int_16 tag,
+                           struct duat_9p_qid qid, int_32 iounit)
+{
+    kill_tag(io, tag);
+
+    struct io *out = io->out;
+
+    int_32 ol = tolel (4 + 1 + 2 + 13 + 4);
+    int_8 c   = Rcreate;
+    tag       = tolew (tag);
+    iounit    = tolel (iounit);
+
     io_collect (out, (void *)&ol,        4);
+    io_collect (out, (void *)&c,         1);
+    io_collect (out, (void *)&tag,       2);
+
+    collect_qid (out, &qid);
+
+    io_collect (out, (void *)&iounit,    4);
 }

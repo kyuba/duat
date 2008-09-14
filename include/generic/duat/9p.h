@@ -119,7 +119,7 @@ struct duat_9p_io {
     void (*Tflush)  (struct duat_9p_io *, int_16);
     void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
     void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
-    void (*Tcreate) (struct duat_9p_io *, int_16);
+    void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
     void (*Tread)   (struct duat_9p_io *, int_16);
     void (*Twrite)  (struct duat_9p_io *, int_16);
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
@@ -133,7 +133,7 @@ struct duat_9p_io {
     void (*Rflush)  (struct duat_9p_io *, int_16);
     void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
     void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
-    void (*Rcreate) (struct duat_9p_io *, int_16);
+    void (*Rcreate) (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
     void (*Rread)   (struct duat_9p_io *, int_16);
     void (*Rwrite)  (struct duat_9p_io *, int_16);
     void (*Rclunk)  (struct duat_9p_io *, int_16);

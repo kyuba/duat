@@ -105,6 +105,15 @@ static void Topen (struct duat_9p_io *io, int_16 tag, int_32 fid, int_8 mode)
     duat_9p_reply_open (io, tag, qid, 0x1000);
 }
 
+static void Tcreate (struct duat_9p_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
+{
+    struct duat_9p_qid qid = { 0, 1, 2 };
+
+    debug (name);
+
+    duat_9p_reply_create (io, tag, qid, 0x1000);
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct duat_9p_io *io = duat_open_io (in, out);
 
@@ -112,6 +121,7 @@ void on_connect(struct io *in, struct io *out, void *p) {
     io->Twalk   = Twalk;
     io->Tstat   = Tstat;
     io->Topen   = Topen;
+    io->Tcreate = Tcreate;
 
     multiplex_add_duat_9p (io, (void *)0);
 }
