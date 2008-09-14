@@ -13,6 +13,7 @@ opts.Add(BoolOption('debugMemory', 'use alternative code fragments that will wor
 opts.Add(BoolOption('optimise', 'default optimisations', True))
 opts.Add(BoolOption('optimiseLinking', 'special linker optimisations', True))
 opts.Add(BoolOption('useAssembly', 'use assembler code (usually to bypass the default C library)', True))
+opts.Add(BoolOption('skipPkgConfig', 'skip the pkg-config calls', False))
 
 opts.Add('arch', 'target architecture', os.uname()[4].lower())
 opts.Add('computerVendor', 'computer vendor', 'unknown')
@@ -197,8 +198,11 @@ if optimiseLinking:
   if ostype != 'darwin':
     env.Append(LINKFLAGS='-Wl,-z,noexecstack -Wl,-z,norelro')
 
-env.Append(LINKFLAGS = subprocess.Popen(['pkg-config', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0],
-           CFLAGS = subprocess.Popen(['pkg-config', '--cflags', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
+if not env['skipPkgConfig']:
+  env.Append(LINKFLAGS = subprocess.Popen(['pkg-config', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0],
+             CFLAGS = subprocess.Popen(['pkg-config', '--cflags', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
+else:
+  env.Append (LIBS = ['curie'])
 
 # adjust linker/compiler flags in pkgconfig file
 

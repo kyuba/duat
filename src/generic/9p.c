@@ -398,13 +398,21 @@ static void mx_on_read_9p (struct io *in, void *d) {
     }
 }
 
+static void mx_on_close_9p (struct io *in, void *d) {
+    struct io_element *element = (struct io_element *)d;
+
+    multiplex_del_io (element->io->out);
+    free_pool_mem (element->io);
+    free_pool_mem (d);
+}
+
 void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
     struct io_element *element = get_pool_mem (&list_pool);
 
     element->io = io;
     element->data = data;
 
-    multiplex_add_io (io->in, mx_on_read_9p, (void *)element);
+    multiplex_add_io (io->in, mx_on_read_9p, mx_on_close_9p, (void *)element);
     multiplex_add_io_no_callback(io->out);
 }
 
