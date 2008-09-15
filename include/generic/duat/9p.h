@@ -74,37 +74,46 @@ struct duat_9p_fid_metadata {
 #define NO_TAG_9P ((int_16)~0)
 #define NO_FID_9P ((int_32)~0)
 
+#define QTDIR       ((int_8) 0x80)
+#define QTAPPEND    ((int_8) 0x40)
+#define QTEXCL      ((int_8) 0x20)
+#define QTMOUNT     ((int_8) 0x10)
+#define QTAUTH      ((int_8) 0x08)
+#define QTTMP       ((int_8) 0x04)
+#define QTLINK      ((int_8) 0x02)
+#define QTFILE      ((int_8) 0x00)
 
-#define QTDIR     ((int_8)  0x80)
-#define QTAPPEND  ((int_8)  0x40)
-#define QTEXCL    ((int_8)  0x20)
-#define QTAUTH    ((int_8)   0x8)
-#define QTTMP     ((int_8)   0x4)
+#define DMDIR       ((int_32)0x80000000)
+#define DMAPPEND    ((int_32)0x40000000)
+#define DMEXCL      ((int_32)0x20000000)
+#define DMMOUNT     ((int_32)0x10000000)
+#define DMAUTH      ((int_32)0x08000000)
+#define DMTMP       ((int_32)0x04000000)
+#define DMSYMLINK   ((int_32)0x02000000)
+#define DMDEVICE    ((int_32)0x00800000)
+#define DMNAMEDPIPE ((int_32)0x00200000)
+#define DMSOCKET    ((int_32)0x00100000)
+#define DMSETUID    ((int_32)0x00080000)
+#define DMSETGID    ((int_32)0x00040000)
 
-#define DMDIR     ((int_32) (QTDIR << 24))
-#define DMAPPEND  ((int_32) (QTDIR << 24))
-#define DMEXCL    ((int_32) (QTDIR << 24))
-#define DMAUTH    ((int_32) (QTDIR << 24))
-#define DMTMP     ((int_32) (QTDIR << 24))
+#define DMUREAD     ((int_32)0x00000100)
+#define DMUWRITE    ((int_32)0x00000080)
+#define DMUEXEC     ((int_32)0x00000040)
 
-#define DMUREAD   ((int_32)0x100)
-#define DMUWRITE  ((int_32) 0x80)
-#define DMUEXEC   ((int_32) 0x40)
+#define DMGREAD     ((int_32)0x00000020)
+#define DMGWRITE    ((int_32)0x00000010)
+#define DMGEXEC     ((int_32)0x00000008)
 
-#define DMGREAD   ((int_32) 0x20)
-#define DMGWRITE  ((int_32) 0x10)
-#define DMGEXEC   ((int_32)  0x8)
+#define DMOREAD     ((int_32)0x00000004)
+#define DMOWRITE    ((int_32)0x00000002)
+#define DMOEXEC     ((int_32)0x00000001)
 
-#define DMOREAD   ((int_32)  0x4)
-#define DMOWRITE  ((int_32)  0x2)
-#define DMOEXEC   ((int_32)  0x1)
-
-#define OREAD       0x0
-#define OWRITE      0x1
-#define OREADWRITE  0x2
-#define OEXEC       0x3
-#define OTRUNC     0x10
-#define ORCLOSE    0x40
+#define OREAD       ((int_8) 0x00)
+#define OWRITE      ((int_8) 0x01)
+#define OREADWRITE  ((int_8) 0x02)
+#define OEXEC       ((int_8) 0x03)
+#define OTRUNC      ((int_8) 0x10)
+#define ORCLOSE     ((int_8) 0x40)
 
 struct duat_9p_io {
     struct io *in, *out;
