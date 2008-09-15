@@ -1333,6 +1333,13 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
     io_collect (out, string,             len);
 }
 
+void duat_9p_reply_auth   (struct duat_9p_io *io, int_16 tag,
+                           struct duat_9p_qid qid)
+{
+    collect_header_reply (io, 13, Rauth, tag);
+    collect_qid (io->out, &qid);
+}
+
 void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
                            struct duat_9p_qid qid)
 {
