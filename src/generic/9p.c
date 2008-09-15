@@ -246,6 +246,7 @@ int_16 duat_9p_prepare_stat_buffer
     if (gid != (char *)0)  while (gid[glen])  glen++;
     int_16 mlen = 0;
     if (muid != (char *)0) while (muid[mlen]) mlen++;
+    int_16 xlen = 0;
 
     int_16 slen =   2
                   + 4
@@ -258,6 +259,12 @@ int_16 duat_9p_prepare_stat_buffer
                   + 2 + ulen
                   + 2 + glen
                   + 2 + mlen;
+
+    if (io->version == duat_9p_version_9p2000_dot_u) {
+        if (ext != (char *)0) while (ext[xlen]) xlen++;
+        slen += 2 + xlen + 4 + 4 + 4;
+    }
+
     int_16 sslen = slen + 2;
 
     int_8 *b = aalloc (sslen);
@@ -313,6 +320,36 @@ int_16 duat_9p_prepare_stat_buffer
         }
     };
 
+    if (io->version == duat_9p_version_9p2000_dot_u) {
+        *((int_16 *)(b + i))  = tolew (xlen);
+        i += 2;
+        if (ext != (char *)0) {
+            int_16 j = 0;
+            while (j < xlen) {
+                b[i] = ext[j];
+                j++, i++;
+            }
+        };
+
+        int_32 du = 0;
+
+        if (uid != (char *)0) {
+            *((int_32 *)(b + i))     = tolel (duat_9p_get_user(uid));
+        } else {
+            *((int_32 *)(b + i))     = tolel (du);
+        }
+        if (gid != (char *)0) {
+            *((int_32 *)(b + i + 4)) = tolel (duat_9p_get_group(gid));
+        } else {
+            *((int_32 *)(b + i + 4)) = tolel (du);
+        }
+        if (muid != (char *)0) {
+            *((int_32 *)(b + i + 8)) = tolel (duat_9p_get_user(muid));
+        } else {
+            *((int_32 *)(b + i + 8)) = tolel (du);
+        }
+    }
+
     *buffer = b;
     return sslen;
 }
@@ -343,8 +380,28 @@ void duat_9p_parse_stat_buffer
     *uid         = pop_string(b, &i, (int_32)sl);
     *gid         = pop_string(b, &i, (int_32)sl);
     *muid        = pop_string(b, &i, (int_32)sl);
-}
 
+    if (io->version == duat_9p_version_9p2000_dot_u) {
+        if (slen < (i + 2)) return;
+        *ext = pop_string(b, &i, (int_32)sl);
+
+        if (slen > (i + 12)) {
+            int_32 nuid  = popl (b + i);
+            int_32 ngid  = popl (b + i + 4);
+            int_32 nmuid = popl (b + i + 8);
+
+            if (*uid != (char *)0) {
+                duat_9p_update_user (*uid, nuid);
+            }
+            if (*gid != (char *)0) {
+                duat_9p_update_user (*gid, ngid);
+            }
+            if (*muid != (char *)0) {
+                duat_9p_update_user (*muid, nmuid);
+            }
+        }
+    }
+}
 
 static void register_tag (struct duat_9p_io *io, int_16 tag) {
     struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
@@ -533,33 +590,29 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 i += 4;
                 char *versionstring = pop_string(b, &i, length);
+                if (versionstring == (char *)0) break;
 
-                if (versionstring == (char *)0) {
-                    duat_9p_reply_error (io, tag, "Malformed message.");
-                    return 0;
-                } else {
-                    int_32 p;
-                    for (p = 0;
-                         (p < 6) &&
-                         (versionstring[p] == VERSION_STRING_9P2000[p]);
-                         p++);
+                int_32 p;
+                for (p = 0;
+                     (p < 6) &&
+                     (versionstring[p] == VERSION_STRING_9P2000[p]);
+                     p++);
 
-                    if (p == 6) {
-                        io->version =
-                          ((versionstring[6] == '.') &&
-                           (versionstring[7] == 'u') &&
-                           (versionstring[8] == (char)0)) ?
-                                duat_9p_version_9p2000_dot_u :
-                                duat_9p_version_9p2000;
+                if (p == 6) {
+                    io->version =
+                      ((versionstring[6] == '.') &&
+                       (versionstring[7] == 'u') &&
+                       (versionstring[8] == (char)0)) ?
+                            duat_9p_version_9p2000_dot_u :
+                            duat_9p_version_9p2000;
 
-                        duat_9p_reply_version(io, tag, msize, ((io->version == duat_9p_version_9p2000_dot_u) ? "9P2000.u" : "9P2000"));
+                    duat_9p_reply_version(io, tag, msize, ((io->version == duat_9p_version_9p2000_dot_u) ? "9P2000.u" : "9P2000"));
 
-                        return length;
-                    }
-
-                    duat_9p_reply_version(io, tag, msize, "unknown");
                     return length;
                 }
+
+                duat_9p_reply_version(io, tag, msize, "unknown");
+                return length;
             }
             break;
 
@@ -670,9 +723,16 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
             if (length > 9) {
                 char *message = pop_string(b, &i, length);
-                if (message != (char *)0) return length;
+                int_16 errno = EDONTCARE;
 
-                io->Rerror(io, tag, message);
+                if (message != (char *)0) return length;
+                if ((io->version == duat_9p_version_9p2000_dot_u) &&
+                    (length >= (i + 2)))
+                {
+                    errno = popw (b + i);
+                }
+
+                io->Rerror(io, tag, message, errno);
             }
             return length;
 
@@ -713,7 +773,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     names[namei] = pop_string(b, &i, length);
 
                     if (names[namei] == (char *)0) {
-                        duat_9p_reply_error (io, tag, "Malformed message.");
+                        duat_9p_reply_error (io, tag, "Malformed message.",
+                                             EDONTCARE);
                         return length;
                     }
                 }
@@ -983,7 +1044,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     }
 
     duat_9p_reply_error (io, tag,
-                         "Function not implemented or malformed message.");
+                         "Function not implemented or malformed message.",
+                         EDONTCARE);
 
     return length;
 }
@@ -1322,17 +1384,27 @@ void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, cha
     io_collect (out, version,            len);
 }
 
-void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string) {
+void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string,
+                           int_16 errno)
+{
     int_16 len = 0;
     while (string[len]) len++;
 
-    collect_header_reply (io, 2 + len, Rversion, tag);
+    collect_header_reply (io,
+                          2 + len +
+                          (io->version == duat_9p_version_9p2000_dot_u) ? 2 : 0,
+                          Rversion, tag);
 
     struct io *out = io->out;
 
     int_16 slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, string,             len);
+
+    if (io->version == duat_9p_version_9p2000_dot_u) {
+        errno = tolew (errno);
+        io_collect (out, (void *)&errno, 2);
+    }
 }
 
 void duat_9p_reply_auth   (struct duat_9p_io *io, int_16 tag,
@@ -1443,4 +1515,45 @@ void duat_9p_reply_wstat   (struct duat_9p_io *io, int_16 tag) {
 
 void duat_9p_reply_flush   (struct duat_9p_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rflush, tag);
+}
+
+/* user/group maps */
+
+static struct tree duat_9p_user_map = TREE_INITIALISER;
+static struct tree duat_9p_group_map = TREE_INITIALISER;
+
+void   duat_9p_update_user  (char *user, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&duat_9p_user_map, user);
+    if (node != (struct tree_node *)0) {
+        node_get_value(node) = (void *)(int_pointer)id;
+    } else {
+        tree_add_node_string_value(&duat_9p_user_map, user,
+                                    (void *)(int_pointer)id);
+    }
+}
+
+void   duat_9p_update_group (char *group, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&duat_9p_group_map, group);
+    if (node != (struct tree_node *)0) {
+        node_get_value(node) = (void *)(int_pointer)id;
+    } else {
+        tree_add_node_string_value(&duat_9p_group_map, group,
+                                    (void *)(int_pointer)id);
+    }
+}
+
+int_32 duat_9p_get_user     (char *user) {
+    struct tree_node *node = tree_get_node_string (&duat_9p_user_map, user);
+    if (node != (struct tree_node *)0) {
+        return (int_32)(int_pointer)node_get_value(node);
+    }
+    return (int_32)0;
+}
+
+int_32 duat_9p_get_group    (char *group) {
+    struct tree_node *node = tree_get_node_string (&duat_9p_group_map, group);
+    if (node != (struct tree_node *)0) {
+        return (int_32)(int_pointer)node_get_value(node);
+    }
+    return (int_32)0;
 }

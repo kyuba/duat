@@ -160,6 +160,9 @@ void on_connect(struct io *in, struct io *out, void *p) {
 }
 
 int a_main(void) {
+    duat_9p_update_user  ("nyu",     1000);
+    duat_9p_update_group ("kittens", 100);
+
     multiplex_network();
     multiplex_duat_9p();
     multiplex_add_socket ("./test-socket-9p", on_connect, (void *)0);

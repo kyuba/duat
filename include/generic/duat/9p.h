@@ -115,6 +115,8 @@ struct duat_9p_fid_metadata {
 #define OTRUNC      ((int_8) 0x10)
 #define ORCLOSE     ((int_8) 0x40)
 
+#define EDONTCARE   0
+
 struct duat_9p_io {
     struct io *in, *out;
 
@@ -142,7 +144,7 @@ struct duat_9p_io {
 
     void (*Rauth)   (struct duat_9p_io *, int_16, struct duat_9p_qid);
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
-    void (*Rerror)  (struct duat_9p_io *, int_16, char *);
+    void (*Rerror)  (struct duat_9p_io *, int_16, char *, int_16);
     void (*Rflush)  (struct duat_9p_io *, int_16);
     void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
     void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
@@ -202,7 +204,7 @@ void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32,
                             char *, char *, char *, char *, char *);
 void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
 
-void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *);
+void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *, int_16);
 
 struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
 struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
@@ -215,5 +217,11 @@ void duat_9p_parse_stat_buffer
         (struct duat_9p_io *, int_32, int_8 *, int_16 *, int_32 *,
          struct duat_9p_qid *, int_32 *, int_32 *, int_32 *, int_64 *, char **,
          char **, char **, char **, char **);
+
+void   duat_9p_update_user  (char *, int_32);
+void   duat_9p_update_group (char *, int_32);
+
+int_32 duat_9p_get_user     (char *);
+int_32 duat_9p_get_group    (char *);
 
 #endif
