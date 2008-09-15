@@ -677,12 +677,14 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tflush:
-            if (io->Tflush == (void *)0) break;
-
             if (length >= 9) {
                 int_16 otag = popw (b + 7);
 
-                io->Tflush(io, tag, otag);
+                kill_tag (io, otag);
+
+                if (io->Tflush == (void *)0) {
+                    io->Tflush(io, tag, otag);
+                }
 
                 return length;
             }
@@ -882,6 +884,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 return length;
             }
             break;
+
         case Rclunk:
             if (io->Rclunk != (void *)0)
             {
@@ -890,8 +893,30 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tremove:
-        case Rremove:
+            if (length >= 11) {
+                int_32 fid = popl (b + 7);
+
+                if (io->Tremove == (void *)0)
+                {
+                    duat_9p_reply_remove (io, tag);
+                }
+                else
+                {
+                    io->Tremove(io, tag, fid);
+                }
+
+                kill_fid (io, fid);
+
+                return length;
+            }
             break;
+
+        case Rremove:
+            if (io->Rremove != (void *)0)
+            {
+                io->Rremove(io, tag);
+            }
+            return length;
 
         case Tstat:
             if (io->Tstat == (void *)0) break;
@@ -1140,6 +1165,21 @@ int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
     return otag;
 }
 
+int_16 duat_9p_remove  (struct duat_9p_io *io, int_32 fid) {
+    kill_fid(io, fid);
+
+    struct io *out = io->out;
+    int_16 otag = find_free_tag (io);
+
+    fid         = tolel (fid);
+
+    collect_header (out, 4, Tremove, otag);
+
+    io_collect (out, (void *)&fid,       4);
+
+    return otag;
+}
+
 int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
@@ -1249,6 +1289,8 @@ int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
 }
 
 int_16 duat_9p_flush   (struct duat_9p_io *io, int_16 oxtag) {
+    kill_tag (io, oxtag);
+
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
 
@@ -1259,7 +1301,6 @@ int_16 duat_9p_flush   (struct duat_9p_io *io, int_16 oxtag) {
 
     return otag;
 }
-
 
 /* reply messages */
 
@@ -1337,6 +1378,10 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
 
 void duat_9p_reply_clunk   (struct duat_9p_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rclunk, tag);
+}
+
+void duat_9p_reply_remove  (struct duat_9p_io *io, int_16 tag) {
+    collect_header_reply (io, 0, Rremove, tag);
 }
 
 void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
