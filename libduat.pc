@@ -1,8 +1,8 @@
 Name: libduat
-Description: 9P I/O library
+Description: Communications library (9P2000, etc) based on Curie
 Version: 1
 URL: http://kyuba.org/
-Requires:
+Requires: libcurie
 Conflicts:
 Libs:
 Cflags:

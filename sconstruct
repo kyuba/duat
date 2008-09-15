@@ -218,9 +218,9 @@ mod = []
 for l in lines:
   s = ""
   if "Libs:" in l:
-    s = 'Libs: -lduat ' + str(env['LINKFLAGS'])  + '\n'
+    s = 'Libs: -lduat\n'
   elif "Cflags" in l:
-    s = 'Cflags: ' + str(env['CFLAGS']) + '\n'
+    s = 'Cflags: \n'
   else:
     s = str(l)
   file.write(s)
