@@ -127,7 +127,9 @@ struct duat_9p_io {
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
     void (*Tremove) (struct duat_9p_io *, int_16, int_32);
     void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
-    void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+    void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32,
+                     struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
+                     char *, char *, char *, char *);
 
     void (*Rauth)   (struct duat_9p_io *, int_16, struct duat_9p_qid);
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
@@ -140,7 +142,9 @@ struct duat_9p_io {
     void (*Rwrite)  (struct duat_9p_io *, int_16, int_32);
     void (*Rclunk)  (struct duat_9p_io *, int_16);
     void (*Rremove) (struct duat_9p_io *, int_16);
-    void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+    void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32,
+                     struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
+                     char *, char *, char *, char *);
     void (*Rwstat)  (struct duat_9p_io *, int_16);
 
     void *arbitrary;
@@ -168,7 +172,9 @@ int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, int_8 *);
 int_16 duat_9p_clunk   (struct duat_9p_io *, int_32);
 int_16 duat_9p_remove  (struct duat_9p_io *, int_32);
 int_16 duat_9p_stat    (struct duat_9p_io *, int_32);
-int_16 duat_9p_wstat   (struct duat_9p_io *, int_32, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+int_16 duat_9p_wstat   (struct duat_9p_io *, int_32, int_16, int_32,
+                        struct duat_9p_qid, int_32, int_32, int_32, int_64,
+                        char *, char *, char *, char *, char *);
 
 void duat_9p_reply_version (struct duat_9p_io *, int_16, int_32, char *);
 void duat_9p_reply_auth    (struct duat_9p_io *, int_16, struct duat_9p_qid);
@@ -182,7 +188,9 @@ void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, int_8 *);
 void duat_9p_reply_write   (struct duat_9p_io *, int_16, int_32);
 void duat_9p_reply_clunk   (struct duat_9p_io *, int_16);
 void duat_9p_reply_remove  (struct duat_9p_io *, int_16);
-void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32, struct duat_9p_qid, int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32,
+                            struct duat_9p_qid, int_32, int_32, int_32, int_64,
+                            char *, char *, char *, char *, char *);
 void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
 
 void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *);
@@ -191,11 +199,12 @@ struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
 struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
 int_16 duat_9p_prepare_stat_buffer
         (struct duat_9p_io *, int_8 **, int_16, int_32, struct duat_9p_qid *,
-         int_32, int_32, int_32, int_64, char *, char *, char *, char *);
+         int_32, int_32, int_32, int_64, char *, char *, char *, char *,
+         char *);
 
 void duat_9p_parse_stat_buffer
         (struct duat_9p_io *, int_32, int_8 *, int_16 *, int_32 *,
          struct duat_9p_qid *, int_32 *, int_32 *, int_32 *, int_64 *, char **,
-         char **, char **, char **);
+         char **, char **, char **, char **);
 
 #endif

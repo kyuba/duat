@@ -236,7 +236,7 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
 int_16 duat_9p_prepare_stat_buffer
         (struct duat_9p_io *io, int_8 **buffer, int_16 type, int_32 dev,
          struct duat_9p_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
-         int_64 length, char *name, char *uid, char *gid, char *muid)
+         int_64 length, char *name, char *uid, char *gid, char *muid, char *ext)
 {
     int_16 nlen = 0;
     if (name != (char *)0) while (name[nlen]) nlen++;
@@ -321,7 +321,7 @@ void duat_9p_parse_stat_buffer
         (struct duat_9p_io *io, int_32 slen, int_8 *b, int_16 *type,
          int_32 *dev, struct duat_9p_qid *qid, int_32 *mode, int_32 *atime,
          int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
-         char **muid)
+         char **muid, char **ext)
 {
     if (slen < 43) return;
     int_16 sl = popw (b);
@@ -938,14 +938,15 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 struct duat_9p_qid qid;
                 int_32 dev, mode, atime, mtime;
                 int_64 length;
-                char *name, *uid, *gid, *muid;
+                char *name, *uid, *gid, *muid, *ext;
 
                 duat_9p_parse_stat_buffer
                         (io, (int_32)slen, b + 9, &type, &dev, &qid, &mode,
-                         &atime, &mtime, &length, &name, &uid, &gid, &muid);
+                         &atime, &mtime, &length, &name, &uid, &gid, &muid,
+                         &ext);
 
                 io->Rstat(io, tag, type, dev, qid, mode, atime, mtime, length,
-                          name, uid, gid, muid);
+                          name, uid, gid, muid, ext);
             }
             return length;
 
@@ -957,14 +958,15 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 struct duat_9p_qid qid;
                 int_32 fid = popl (b + 7), dev, mode, atime, mtime;
                 int_64 length;
-                char *name, *uid, *gid, *muid;
+                char *name, *uid, *gid, *muid, *ext;
 
                 duat_9p_parse_stat_buffer
                         (io, (int_32)slen, b + 13, &type, &dev, &qid, &mode,
-                         &atime, &mtime, &length, &name, &uid, &gid, &muid);
+                         &atime, &mtime, &length, &name, &uid, &gid, &muid,
+                         &ext);
 
                 io->Twstat(io, tag, type, fid, dev, qid, mode, atime, mtime,
-                           length, name, uid, gid, muid);
+                           length, name, uid, gid, muid, ext);
             }
             break;
 
@@ -1264,7 +1266,7 @@ int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
                         int_16 type, int_32 dev, struct duat_9p_qid qid,
                         int_32 mode, int_32 atime, int_32 mtime,
                         int_64 length, char *name, char *uid, char *gid,
-                        char *muid)
+                        char *muid, char *ext)
 {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
@@ -1272,7 +1274,7 @@ int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
     int_8 *bb;
     int_16 slen = duat_9p_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
-             gid, muid);
+             gid, muid, ext);
 
     fid         = tolel (fid);
 
@@ -1365,12 +1367,13 @@ void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
 void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
                            int_32 dev, struct duat_9p_qid qid, int_32 mode,
                            int_32 atime, int_32 mtime, int_64 length,
-                           char *name, char *uid, char *gid, char *muid)
+                           char *name, char *uid, char *gid, char *muid,
+                           char *ext)
 {
     int_8 *bb;
     int_16 slen = duat_9p_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
-             gid, muid);
+             gid, muid, ext);
 
     collect_header_reply (io, 2 + slen, Rstat, tag);
 

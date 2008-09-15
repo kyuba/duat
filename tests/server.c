@@ -75,14 +75,14 @@ static void Tstat (struct duat_9p_io *io, int_16 tag, int_32 fid)
         duat_9p_reply_stat (io, tag, 1, 1, qid,
                             DMDIR | DMUREAD | DMOREAD | DMGREAD,
                             1, 1, 2,
-                            "/", "nyu", "kittens", "nyu");
+                            "/", "nyu", "kittens", "nyu", (char *)0);
     } else {
         struct duat_9p_qid qid = { 0, 1, 2 };
 
         duat_9p_reply_stat (io, tag, 1, 1, qid,
                             DMUREAD | DMOREAD | DMGREAD,
                             1, 1, 800,
-                            "nyoron", "nyu", "kittens", "nyu");
+                            "nyoron", "nyu", "kittens", "nyu", (char *)0);
     }
 }
 
@@ -112,12 +112,12 @@ static void Tread (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset,
         if (md->index == 0) {
             slen = duat_9p_prepare_stat_buffer
                     (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
-                     1, 1, 6, "nyoron", "nyu", "kittens", "nyu");
+                     1, 1, 6, "nyoron", "nyu", "kittens", "nyu", (char *)0);
             duat_9p_reply_read (io, tag, slen, bb);
         } else if (md->index == 1) {
             slen = duat_9p_prepare_stat_buffer
                     (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
-                     1, 1, 6, "nyoronZ", "nyu", "kittens", "nyu");
+                     1, 1, 6, "nyoronZ", "nyu", "kittens", "nyu", (char *)0);
             duat_9p_reply_read (io, tag, slen, bb);
         } else {
             duat_9p_reply_read (io, tag, 0, (int_8 *)0);
