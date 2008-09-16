@@ -2,7 +2,7 @@ Name: libduat
 Description: Communications library (9P2000, etc) based on Curie
 Version: 1
 URL: http://kyuba.org/
-Requires: libcurie
+Requires: libcurie-hosted
 Conflicts:
 Libs: -lduat
 Cflags:

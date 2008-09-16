@@ -100,12 +100,6 @@ includedir      = env['destdir'] + env['prefix'] + 'include/duat/'
 # os.environ['PKG_CONFIG_PATH']
 
 ##############
-try:
-  os.mkdir ('build')
-  print ('build directory created')
-except:
-  print ('build directory existed')
-
 def normalise(str):
   return str.replace(' ', '').replace('_', '-')
 
@@ -233,28 +227,6 @@ else:
 
 # adjust linker/compiler flags in pkgconfig file
 
-file = open('./libduat.pc', "r")
-
-lines = file.readlines()
-
-file.close()
-
-file = open('./build/libduat.pc', "w")
-
-mod = []
-for l in lines:
-  s = ""
-  if "Libs:" in l:
-    s = 'Libs: -lduat\n'
-  elif "Cflags" in l:
-    s = 'Cflags: \n'
-  else:
-    s = str(l)
-  file.write(s)
-
-file.close()
-
-
 sf = []
 
 for i in sourcefiles:
@@ -282,7 +254,7 @@ for i in installheaders:
   if x:
     env.Install (includedir, x);
 
-env.Install(pkgconfigpath, 'build/libduat.pc')
-env.Alias('pkg-config', pkgconfigpath)
+env.Install(pkgconfigpath, 'libduat.pc')
+env.Install(pkgconfigpath, 'libduat-hosted.pc')
 
-env.Alias('install', [ 'pkg-config', libdir, includedir ])
+env.Alias('install', [ pkgconfigpath, libdir, includedir ])
