@@ -723,7 +723,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
             if (length > 9) {
                 char *message = pop_string(b, &i, length);
-                int_16 errno = EDONTCARE;
+                int_16 errno = P9_EDONTCARE;
 
                 if (message != (char *)0) return length;
                 if ((io->version == duat_9p_version_9p2000_dot_u) &&
@@ -774,7 +774,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                     if (names[namei] == (char *)0) {
                         duat_9p_reply_error (io, tag, "Malformed message.",
-                                             EDONTCARE);
+                                             P9_EDONTCARE);
                         return length;
                     }
                 }
@@ -1045,7 +1045,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     duat_9p_reply_error (io, tag,
                          "Function not implemented or malformed message.",
-                         EDONTCARE);
+                         P9_EDONTCARE);
 
     return length;
 }
