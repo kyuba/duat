@@ -5,3 +5,48 @@
 
 
 ################################################################################
+
+
+NOTE:
+  This is version one of this library; It has not been tested properly, and is
+  rather intended as an API snapshot.
+
+NOTE.2:
+  Please take note of the library licence (the COPYING file), as well as the
+  credits (the CREDITS file).
+
+
+###- DETAILS -##################################################################
+
+Compilation:
+  Make sure you have scons installed, then:
+
+    $ scons library
+
+  A number of compilation options are available if you run into issues. To see
+  them, use:
+
+    $ scons --help
+
+Installation:
+  use this command to install regularly (usually into /usr):
+
+    $ scons install
+
+  To add an installation-only prefix, use:
+
+    $ scons destdir=/some/prefix install
+
+Linking against libduat:
+  Use pkg-config to retrieve the flags needed to link with libduat:
+
+    $ pkg-config --cflags --libs libduat
+
+  For the hosted variant of libcurie, use:
+
+    $ pkg-config --cflags --libs libduat-hosted
+
+  Check pkg-config's documentation for more details.
+
+CONTACT:
+  Best bet is IRC: freenode #kyuba

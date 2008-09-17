@@ -240,15 +240,6 @@ x = env.StaticLibrary('duat', sf)
 env.Alias ('library', x)
 env.Install (libdir, x)
 
-import glob
-testsource = glob.glob('tests/*.c');
-
-tenv = env.Clone()
-tenv.Append(LIBS = ['duat', 'curie'])
-
-for i in testsource:
-  tenv.Program(i)
-
 for i in installheaders:
   x = findheader(i)
   if x:
