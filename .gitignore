@@ -20,3 +20,5 @@ tests/*
 !tests/data
 !tests/reference
 !tests/reference/*
+
+documentation/doxygen

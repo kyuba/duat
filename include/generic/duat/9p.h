@@ -36,192 +36,551 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#if !defined(DUAT_9P_H)
+/*! \defgroup Duat9P 9P2000(.u)
+ *
+ *  This describes duat's 9p2000(.u) implementation. The implementation is
+ *  fairly low-level, meaning it's very close to the structure of the protocol,
+ *  which is not always that nice to use.
+ *
+ *  The interface is designed to avoid global state at all costs, which is why
+ *  some functions have quite many arguments. However, since the protocol has
+ *  been properly defined and is stable for quite a while, this should not pose
+ *  too much of a problem.
+ *
+ *  You should also read http://www.cs.bell-labs.com/sys/man/5/INDEX.html and
+ *  http://v9fs.sourceforge.net/rfc/9p2000.u.html to understand the 9P2000 and
+ *  9P2000.u protocols themselves. Trying to use this library without
+ *  understanding the protocols will be next to impossible.
+ *
+ *  @{
+ */
+
+/*! \file
+ *  \brief Duat 9P2000(.u) Header
+ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef DUAT_9P_H
 #define DUAT_9P_H
 
 #include <curie/int.h>
 #include <curie/io.h>
 #include <curie/tree.h>
 
-enum duat_9p_connection_version {
-    duat_9p_uninitialised        = 0,
-    duat_9p_version_9p2000       = 1,
-    duat_9p_version_9p2000_dot_u = 2
-};
+/*! \defgroup P9Constants 9p Constants
+ *  \brief Constants used in the 9P Protocol
+ *
+ *  You should check the Plan9 manual pages for a description of these contants.
+ *
+ *  @{
+ */
 
+/*! \brief 'Blank' Tag, usually used for T/Rversion */
+#define NO_TAG_9P ((int_16)~0)
+/*! \brief 'Blank' FID */
+#define NO_FID_9P ((int_32)~0)
+
+/*! \defgroup P9QIDConstants 9p QID Constants
+ *  \brief qid.type Constants
+ *
+ *  @{
+ */
+
+/*! \brief File is a Directory */
+#define QTDIR       ((int_8) 0x80)
+/*! \brief File is a Append-only */
+#define QTAPPEND    ((int_8) 0x40)
+/*! \brief File can only be open exactly once */
+#define QTEXCL      ((int_8) 0x20)
+/*! \brief File describes a mount */
+#define QTMOUNT     ((int_8) 0x10)
+/*! \brief File is an Authorisation Ticket */
+#define QTAUTH      ((int_8) 0x08)
+/*! \brief File is Temporary */
+#define QTTMP       ((int_8) 0x04)
+/*! \brief File is a Symlink */
+#define QTLINK      ((int_8) 0x02)
+/*! \brief File is a regular File */
+#define QTFILE      ((int_8) 0x00)
+
+/*! @} */
+
+/*! \defgroup P9ModeConstants 9p Mode Constants
+ *  \brief File Mode Constants
+ *
+ *  @{
+ */
+
+/*! \brief File is a Directory*/
+#define DMDIR       ((int_32)0x80000000)
+/*! \brief File is Append-only */
+#define DMAPPEND    ((int_32)0x40000000)
+/*! \brief File can only be open exactly once */
+#define DMEXCL      ((int_32)0x20000000)
+/*! \brief File describes a mount */
+#define DMMOUNT     ((int_32)0x10000000)
+/*! \brief File is an Authorisation Ticket */
+#define DMAUTH      ((int_32)0x08000000)
+/*! \brief File is Temporary */
+#define DMTMP       ((int_32)0x04000000)
+/*! \brief File is a Symlink */
+#define DMSYMLINK   ((int_32)0x02000000)
+/*! \brief File is a Device File */
+#define DMDEVICE    ((int_32)0x00800000)
+/*! \brief File is a Named Pipe */
+#define DMNAMEDPIPE ((int_32)0x00200000)
+/*! \brief File is a Socket */
+#define DMSOCKET    ((int_32)0x00100000)
+
+/*! \brief Executing this File is performed as the File's User */
+#define DMSETUID    ((int_32)0x00080000)
+/*! \brief Executing this File is performed as a member of the File's Group */
+#define DMSETGID    ((int_32)0x00040000)
+/*! \brief Owner may read the File */
+#define DMUREAD     ((int_32)0x00000100)
+/*! \brief Owner may write to the File */
+#define DMUWRITE    ((int_32)0x00000080)
+/*! \brief Owner may execute the File */
+#define DMUEXEC     ((int_32)0x00000040)
+/*! \brief File's Group Members may read the File */
+#define DMGREAD     ((int_32)0x00000020)
+/*! \brief File's Group Members may write to the File */
+#define DMGWRITE    ((int_32)0x00000010)
+/*! \brief File's Group Members may execute the File */
+#define DMGEXEC     ((int_32)0x00000008)
+/*! \brief Anyone may read the File */
+#define DMOREAD     ((int_32)0x00000004)
+/*! \brief Anyone may write to the File */
+#define DMOWRITE    ((int_32)0x00000002)
+/*! \brief Anyone may execute the File */
+#define DMOEXEC     ((int_32)0x00000001)
+/*! @} */
+
+/*! \defgroup P9OpenConstants 9p open() Constants
+ *  \brief open() Parameter Constants
+ *
+ *  @{
+ */
+
+/*! \brief Open the File for reading */
+#define P9_OREAD       ((int_8) 0x00)
+/*! \brief Open the File for writing */
+#define P9_OWRITE      ((int_8) 0x01)
+/*! \brief Open the File for reading and writing */
+#define P9_OREADWRITE  ((int_8) 0x02)
+/*! \brief Open the File to execute it */
+#define P9_OEXEC       ((int_8) 0x03)
+/*! \brief Truncate the File */
+#define P9_OTRUNC      ((int_8) 0x10)
+/*! \brief Remove the File after closing it */
+#define P9_ORCLOSE     ((int_8) 0x40)
+/*! @} */
+
+/*! \brief 9p2000.u Dummy Error Code */
+#define P9_EDONTCARE   0
+
+/*! @} */
+
+/*! \brief A 9P2000 QID */
 struct duat_9p_qid {
+    /*! \brief The Type of the File */
     int_8  type;
+    /*! \brief The 'Version' of the File */
     int_32 version;
+    /*! \brief The unique ID for the File's Path */
     int_64 path;
 };
 
-struct duat_9p_tag_metadata {
-    void *arbitrary;
-};
+/*! \defgroup P9Connections 9p Connections
+ *  \brief 9P2000(.u) Connection Handling
+ *
+ *  Duat connections are designed to be used with curie's multiplexer.
+ *
+ *  @{
+ */
 
-struct duat_9p_fid_metadata {
-    void    *arbitrary;
-    int_16   path_count;
-    int_16   path_block_size;
-    char   **path;
-
-    char     open;
-    int_8    mode;
-
-    int_32   index;
-};
-
-#define NO_TAG_9P ((int_16)~0)
-#define NO_FID_9P ((int_32)~0)
-
-#define QTDIR       ((int_8) 0x80)
-#define QTAPPEND    ((int_8) 0x40)
-#define QTEXCL      ((int_8) 0x20)
-#define QTMOUNT     ((int_8) 0x10)
-#define QTAUTH      ((int_8) 0x08)
-#define QTTMP       ((int_8) 0x04)
-#define QTLINK      ((int_8) 0x02)
-#define QTFILE      ((int_8) 0x00)
-
-#define DMDIR       ((int_32)0x80000000)
-#define DMAPPEND    ((int_32)0x40000000)
-#define DMEXCL      ((int_32)0x20000000)
-#define DMMOUNT     ((int_32)0x10000000)
-#define DMAUTH      ((int_32)0x08000000)
-#define DMTMP       ((int_32)0x04000000)
-#define DMSYMLINK   ((int_32)0x02000000)
-#define DMDEVICE    ((int_32)0x00800000)
-#define DMNAMEDPIPE ((int_32)0x00200000)
-#define DMSOCKET    ((int_32)0x00100000)
-#define DMSETUID    ((int_32)0x00080000)
-#define DMSETGID    ((int_32)0x00040000)
-
-#define DMUREAD     ((int_32)0x00000100)
-#define DMUWRITE    ((int_32)0x00000080)
-#define DMUEXEC     ((int_32)0x00000040)
-
-#define DMGREAD     ((int_32)0x00000020)
-#define DMGWRITE    ((int_32)0x00000010)
-#define DMGEXEC     ((int_32)0x00000008)
-
-#define DMOREAD     ((int_32)0x00000004)
-#define DMOWRITE    ((int_32)0x00000002)
-#define DMOEXEC     ((int_32)0x00000001)
-
-#define OREAD       ((int_8) 0x00)
-#define OWRITE      ((int_8) 0x01)
-#define OREADWRITE  ((int_8) 0x02)
-#define OEXEC       ((int_8) 0x03)
-#define OTRUNC      ((int_8) 0x10)
-#define ORCLOSE     ((int_8) 0x40)
-
-#define EDONTCARE   0
-
+/*! \brief Duat 9P2000(.u) IO Connection
+ *
+ *  This structure describes an active 9p2000.u connection.
+ */
 struct duat_9p_io {
-    struct io *in, *out;
+    /*! \brief IO input file.
+     *  \internal */
+    struct io *in;
+    /*! \brief IO output file.
+     *  \internal */
+    struct io *out;
 
-    enum duat_9p_connection_version version;
+    /*! \brief 9P Protocol Version */
+    enum {
+        /*! \brief The connection has not been initialised yet */
+        duat_9p_uninitialised        = 0,
+        /*! \brief The connection is using the 9P2000 Protocol */
+        duat_9p_version_9p2000       = 1,
+        /*! \brief The connection is using the 9P2000.u Protocol */
+        duat_9p_version_9p2000_dot_u = 2
+    }
+    /*! \brief The negotiated Protocol Version */
+    version;
+
+    /*! \brief Maximum Size for any single Message.
+     *  \note It is an error to generate a message that exceeds this size. */
     int_16 max_message_size;
 
+    /*! \brief Active FIDs in this Connection. */
     struct tree *fids;
+    /*! \brief Active Tags in this Connection. */
     struct tree *tags;
 
+    /*! \brief Callback for an incoming Tauth Message */
     void (*Tauth)   (struct duat_9p_io *, int_16, int_32, char *, char *);
+    /*! \brief Callback for an incoming Tattach Message */
     void (*Tattach) (struct duat_9p_io *, int_16, int_32, int_32, char *,
                      char *);
+    /*! \brief Callback for an incoming Tflush Message */
     void (*Tflush)  (struct duat_9p_io *, int_16, int_16);
+    /*! \brief Callback for an incoming Twalk Message */
     void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
+    /*! \brief Callback for an incoming Topen Message */
     void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
+    /*! \brief Callback for an incoming Tcreate Message */
     void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
+    /*! \brief Callback for an incoming Tread Message */
     void (*Tread)   (struct duat_9p_io *, int_16, int_32, int_64, int_32);
+    /*! \brief Callback for an incoming Twrite Message */
     void (*Twrite)  (struct duat_9p_io *, int_16, int_32, int_64, int_32, int_8 *);
+    /*! \brief Callback for an incoming Tclunk Message */
     void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
+    /*! \brief Callback for an incoming Tremove Message */
     void (*Tremove) (struct duat_9p_io *, int_16, int_32);
+    /*! \brief Callback for an incoming Tstat Message */
     void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
+    /*! \brief Callback for an incoming Twstat Message */
     void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32,
                      struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
                      char *, char *, char *, char *);
 
+    /*! \brief Callback for an incoming Rauth Message */
     void (*Rauth)   (struct duat_9p_io *, int_16, struct duat_9p_qid);
+    /*! \brief Callback for an incoming Rattach Message */
     void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
+    /*! \brief Callback for an incoming Rerror Message */
     void (*Rerror)  (struct duat_9p_io *, int_16, char *, int_16);
+    /*! \brief Callback for an incoming Rflush Message */
     void (*Rflush)  (struct duat_9p_io *, int_16);
+    /*! \brief Callback for an incoming Rwalk Message */
     void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
+    /*! \brief Callback for an incoming Ropen Message */
     void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+    /*! \brief Callback for an incoming Rcreate Message */
     void (*Rcreate) (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+    /*! \brief Callback for an incoming Rread Message */
     void (*Rread)   (struct duat_9p_io *, int_16, int_32, int_8 *);
+    /*! \brief Callback for an incoming Rwrite Message */
     void (*Rwrite)  (struct duat_9p_io *, int_16, int_32);
+    /*! \brief Callback for an incoming Rclunk Message */
     void (*Rclunk)  (struct duat_9p_io *, int_16);
+    /*! \brief Callback for an incoming Rremove Message */
     void (*Rremove) (struct duat_9p_io *, int_16);
+    /*! \brief Callback for an incoming Rstat Message */
     void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32,
                      struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
                      char *, char *, char *, char *);
+    /*! \brief Callback for an incoming Rwstat Message */
     void (*Rwstat)  (struct duat_9p_io *, int_16);
 
+    /*! \brief Arbitrary, User-defined Metadata */
     void *arbitrary;
 };
 
-struct duat_9p_io *duat_open_io (struct io *, struct io *);
+/*! \brief Initialise a 9P Connection on the given IO Structures
+ *  \param[in] in  Input file.
+ *  \param[in] out Output file.
+ *  \return A new duat_9p_io structure.
+ *
+ *  After this function has been called, the IO structures may not be
+ *  manipulated directly.
+ */
+struct duat_9p_io *duat_open_io (struct io *in, struct io *out);
 
+/*! \brief Open a 9P Connection with the specified FDs */
 #define duat_open_io_fd(in,out) duat_open_io (io_open ((in)), io_open((out)))
+/*! \brief Open the Standard In- and Output of the Process as a 9P Connection */
 #define duat_open_stdio() duat_open_io_fd(0, 1)
 
+/*! \brief Close the given 9P Connection
+ *
+ *  This will also free the structure's memory and close the in and out file
+ *  descriptors.
+ */
 void duat_close_io (struct duat_9p_io *);
 
+/*! \brief Initialise the 9P Multiplexer
+ *
+ *  This function is used to initialise curie's multiplex() function so that 9P
+ *  connections can be used with it.
+ */
 void multiplex_duat_9p ();
-void multiplex_add_duat_9p (struct duat_9p_io *, void *);
 
+/*! \brief Multiplex the given Connection
+ *  \param[in] data Arbitrary, user-defined data.
+ */
+void multiplex_add_duat_9p (struct duat_9p_io *, void *data);
+
+/*! @} */
+
+/*! \defgroup P9Messages 9p Messages
+ *  \brief 9P2000(.u) Message Construction and Handling
+ *
+ *  These functions are used to construct and send 9P2000.u messages.
+ *
+ *  All of the functions take a 9P connection structure as the first argument.
+ *  The arguments are exactly the same as described in the Plan9 manual pages,
+ *  except for messages modified by the 9P2000.u protocol, which take this
+ *  latter protocol's parameters. For 9P2000 connections, the extra parameters
+ *  will simply be ignored. Stat arguments are expanded to the stat contents.
+ *
+ *  @{
+ */
+
+/*! \brief Send a Tversion Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_version (struct duat_9p_io *, int_32, char *);
+/*! \brief Send a Tauth Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_auth    (struct duat_9p_io *, int_32, char *, char *);
+/*! \brief Send a Tattach Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_attach  (struct duat_9p_io *, int_32, int_32, char *, char *);
+/*! \brief Send a Tflush Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_flush   (struct duat_9p_io *, int_16);
+/*! \brief Send a Twalk Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_walk    (struct duat_9p_io *, int_32, int_32, int_16, char **);
+/*! \brief Send a Topen Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_open    (struct duat_9p_io *, int_32, int_8);
+/*! \brief Send a Tcreate Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_create  (struct duat_9p_io *, int_32, char *, int_32, int_8);
+/*! \brief Send a Tread Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_read    (struct duat_9p_io *, int_32, int_64, int_32);
+/*! \brief Send a Twrite Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, int_8 *);
+/*! \brief Send a Tclunk Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_clunk   (struct duat_9p_io *, int_32);
+/*! \brief Send a Tremove Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_remove  (struct duat_9p_io *, int_32);
+/*! \brief Send a Tstat Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_stat    (struct duat_9p_io *, int_32);
+/*! \brief Send a Twstat Message
+ *  \return The tag the request was sent with. */
 int_16 duat_9p_wstat   (struct duat_9p_io *, int_32, int_16, int_32,
                         struct duat_9p_qid, int_32, int_32, int_32, int_64,
                         char *, char *, char *, char *, char *);
 
+/*! \brief Send an Rversion Message */
 void duat_9p_reply_version (struct duat_9p_io *, int_16, int_32, char *);
+/*! \brief Send an Rauth Message */
 void duat_9p_reply_auth    (struct duat_9p_io *, int_16, struct duat_9p_qid);
+/*! \brief Send an Rattach Message */
 void duat_9p_reply_attach  (struct duat_9p_io *, int_16, struct duat_9p_qid);
+/*! \brief Send an Rflush Message */
 void duat_9p_reply_flush   (struct duat_9p_io *, int_16);
+/*! \brief Send an Rwalk Message */
 void duat_9p_reply_walk    (struct duat_9p_io *, int_16, int_16,
                             struct duat_9p_qid *);
+/*! \brief Send an Ropen Message */
 void duat_9p_reply_open    (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+/*! \brief Send an Rcreate Message */
 void duat_9p_reply_create  (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+/*! \brief Send an Rread Message */
 void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, int_8 *);
+/*! \brief Send an Rwrite Message */
 void duat_9p_reply_write   (struct duat_9p_io *, int_16, int_32);
+/*! \brief Send an Rclunk Message */
 void duat_9p_reply_clunk   (struct duat_9p_io *, int_16);
+/*! \brief Send an Rremove Message */
 void duat_9p_reply_remove  (struct duat_9p_io *, int_16);
+/*! \brief Send an Rstat Message */
 void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32,
                             struct duat_9p_qid, int_32, int_32, int_32, int_64,
                             char *, char *, char *, char *, char *);
+/*! \brief Send an Rwstat Message */
 void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
 
+/*! \brief Send an Rerror Message */
 void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *, int_16);
 
+/*! @} */
+
+/*! \defgroup P9TagMetadata 9p Tag Metadata
+ *  \brief 9p Tag Metadata Handling
+ *
+ *  All active tags are tracked in the duat_9p_io struct, along with some
+ *  metadata.
+ *
+ *  @{
+ */
+
+/*! \brief Metadata for a 9p-Tag
+ *
+ *  This struct can be used to keep track of additional metadata required to
+ *  process a request.
+ */
+struct duat_9p_tag_metadata {
+    /*! \brief Arbitrary, User-defined Metadata */
+    void *arbitrary;
+};
+
+/*! \brief Retrieve Tag Metadata */
 struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
+/*! @} */
+
+/*! \defgroup P9FIDMetadata 9p FID Handling
+ *  \brief 9p FID Metadata Handling
+ *
+ *  All active fids are tracked in the duat_9p_io struct, along with some
+ *  metadata. The metadata also encompasses the file that the fid points to,
+ *  and it has provisions for keeping track of whether it is open and the mode
+ *  it is open as.
+ *
+ *  @{
+ */
+
+/*! \brief Metadata for a 9p-FID
+ *
+ *  This struct can be used to keep track of additional metadata required to
+ *  process a request.
+ */
+struct duat_9p_fid_metadata {
+    /*! \brief Elements in duat_9p_fid_metadata.path */
+    int_16   path_count;
+    /*! \brief The Path pointed to by this FID */
+    char   **path;
+
+    /*! \brief Whether the File is open or not (set by the User) */
+    char     open;
+    /*! \brief The Mode of the File (set by the User) */
+    int_8    mode;
+
+    /*! \brief This Index should be used to keep track of the current File in a
+     *         File Listing */
+    int_32   index;
+
+    /*! \brief Size (in bytes) of duat_9p_fid_metadata.path
+     *  \internal */
+    int_16   path_block_size;
+
+    /*! \brief Arbitrary, User-defined Metadata */
+    void    *arbitrary;
+};
+
+/*! \brief Retrieve FID Metadata */
 struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
+/*! @} */
+
+/*! \defgroup P9UtilityFunctions 9P Utility Functions
+ *
+ *  These are simple helper functions for some common tasks.
+ *
+ *  @{
+ */
+
+/*! \brief Prepare a buffer containing the protocol's representation of a stat
+ *         structure.
+ *  \param[in]  io     Used to find out whether to create a plain or a .u
+ *                     buffer.
+ *  \param[out] buffer A pointer to a memory location that will be set to the
+ *                     created buffer.
+ *  \param[in]  type   For kernel use.
+ *  \param[in]  dev    For kernel use.
+ *  \param[in]  qid    The qid of the file.
+ *  \param[in]  mode   File permissions and flags.
+ *  \param[in]  atime  Time of last access.
+ *  \param[in]  mtime  Time of last modification.
+ *  \param[in]  length The length of the file (in bytes).
+ *  \param[in]  name   The name of the file.
+ *  \param[in]  uid    The name of the file's owner.
+ *  \param[in]  gid    The file's group.
+ *  \param[in]  muid   The name of the user who last modified the file.
+ *  \param[in]  ex     9P2000.u extension field.
+ *  \return The length of the created buffer.
+ *
+ *  Use curie's afree() to free the generated buffer.
+ */
 int_16 duat_9p_prepare_stat_buffer
-        (struct duat_9p_io *, int_8 **, int_16, int_32, struct duat_9p_qid *,
-         int_32, int_32, int_32, int_64, char *, char *, char *, char *,
-         char *);
+        (struct duat_9p_io *io, int_8 **buffer, int_16 type, int_32 dev,
+         struct duat_9p_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
+         int_64 length, char *name, char *uid, char *gid, char *muid, char *ex);
 
+/*! \brief Parse a stat buffer.
+ *  \param[in]  io      Used to find out whether to parse a plain or a .u
+ *                      buffer.
+ *  \param[in]  blength The length of the buffer to parse.
+ *  \param[in]  buffer  The buffer to parse.
+ *  \param[out] type   For kernel use.
+ *  \param[out] dev    For kernel use.
+ *  \param[out] qid    The qid of the file.
+ *  \param[out] mode   File permissions and flags.
+ *  \param[out] atime  Time of last access.
+ *  \param[out] mtime  Time of last modification.
+ *  \param[out] length The length of the file (in bytes).
+ *  \param[out] name   The name of the file.
+ *  \param[out] uid    The name of the file's owner.
+ *  \param[out] gid    The file's group.
+ *  \param[out] muid   The name of the user who last modified the file.
+ *  \param[out] ex     9P2000.u extension field.
+ */
 void duat_9p_parse_stat_buffer
-        (struct duat_9p_io *, int_32, int_8 *, int_16 *, int_32 *,
-         struct duat_9p_qid *, int_32 *, int_32 *, int_32 *, int_64 *, char **,
-         char **, char **, char **, char **);
+        (struct duat_9p_io *io, int_32 blength, int_8 *buffer, int_16 *type,
+         int_32 *dev, struct duat_9p_qid *qid, int_32 *mode, int_32 *atime,
+         int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
+         char **muid, char **ex);
 
-void   duat_9p_update_user  (char *, int_32);
-void   duat_9p_update_group (char *, int_32);
+/*! \brief Set a User's UID
+ *  \param[in] user The user whose ID to update.
+ *  \param[in] uid  The new user ID.
+ *
+ *  The map manipulated by this function is used for the user IDs in the
+ *  9P2000.u stat structures.
+ */
+void   duat_9p_update_user  (char *user, int_32 uid);
 
-int_32 duat_9p_get_user     (char *);
-int_32 duat_9p_get_group    (char *);
+/*! \brief Set a Group's GID
+ *  \param[in] group The group whose ID to update.
+ *  \param[in] gid   The new group ID.
+ *
+ *  The map manipulated by this function is used for the group IDs in the
+ *  9P2000.u stat structures.
+ */
+void   duat_9p_update_group (char *group, int_32 gid);
+
+/*! \brief Retrieve a User's UID
+ *  \param[in] user The user whose ID to retrieve.
+ *  \return The user's ID. */
+int_32 duat_9p_get_user     (char *user);
+
+/*! \brief Retrieve a Group's GID
+ *  \param[in] group The group whose ID to retrieve.
+ *  \return The group's ID. */
+int_32 duat_9p_get_group    (char *group);
+
+/*! @} */
 
 #endif
+
+#ifdef __cplusplus
+}
+#endif
+
+/*! @} */
