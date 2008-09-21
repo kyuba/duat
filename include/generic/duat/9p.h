@@ -304,12 +304,11 @@ struct duat_9p_io {
  *  After this function has been called, the IO structures may not be
  *  manipulated directly.
  */
-struct duat_9p_io *duat_open_io (struct io *in, struct io *out);
+/*@null@*/ struct duat_9p_io *duat_open_io
+        (/*@notnull@*/ struct io *in, /*@notnull@*/ struct io *out);
 
-/*! \brief Open a 9P Connection with the specified FDs */
-#define duat_open_io_fd(in,out) duat_open_io (io_open ((in)), io_open((out)))
 /*! \brief Open the Standard In- and Output of the Process as a 9P Connection */
-#define duat_open_stdio() duat_open_io_fd(0, 1)
+/*@null@*/ struct duat_9p_io *duat_open_stdio();
 
 /*! \brief Close the given 9P Connection
  *
