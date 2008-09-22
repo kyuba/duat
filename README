@@ -1,5 +1,5 @@
 ###- QUICK AND DIRTY: COMPILATION AND INSTALLATION -############################
-  You'll need scons, pkg-config and libcurie-2 or higher. No ifs or buts.
+  You'll need scons, pkg-config and libcurie-3 or higher. No ifs or buts.
 
     $ scons install
 
@@ -8,8 +8,8 @@
 
 
 NOTE:
-  This is version one of this library; It has not been tested properly, and is
-  rather intended as an API snapshot.
+  This is an early version of this library; It has not been tested properly, and
+  is rather intended as an API snapshot.
 
 NOTE.2:
   Please take note of the library licence (the COPYING file), as well as the
