@@ -291,7 +291,11 @@ int_16 duat_9p_prepare_stat_buffer
 
     sslen = slen + 2;
 
-    b = aalloc (sslen);
+    if ((b = aalloc (sslen)) == (int_8 *)0)
+    {
+        *buffer = (int_8 *)0;
+        return 0;
+    }
 
     *((int_16 *)(b))      = tolew (slen);
     *((int_16 *)(b + 2))  = tolew (type);
@@ -434,6 +438,9 @@ void duat_9p_parse_stat_buffer
 
 static void register_tag (struct duat_9p_io *io, int_16 tag) {
     struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
+
+    if (md == (struct duat_9p_tag_metadata *)0) return;
+
     md->arbitrary = (void *)0;
 
     tree_add_node_value (io->tags, (int_pointer)tag, (void *)md);
@@ -478,6 +485,9 @@ static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
     int_16 i = 0, size = 0;
 
     struct duat_9p_fid_metadata *md = get_pool_mem (&duat_fid_pool);
+
+    if (md == (struct duat_9p_fid_metadata *)0) return;
+
     md->arbitrary       = (void *)0;
     md->path_count      = pathc;
 
@@ -501,8 +511,12 @@ static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
     if (size > 0) {
         char *pathb     = aalloc (size);
         char **pathbb   = (char **)pathb;
-
         int_16 b        = pathc * sizeof (char *);
+
+        if (pathb == (char *)0) {
+            free_pool_mem ((void *)md);
+            return;
+        }
 
         for (i = 0; i < pathc; i++) {
             int_16 j    = 0;
@@ -590,6 +604,8 @@ static void mx_on_close_9p (struct io *in, void *d) {
 
 void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
     struct io_element *element = get_pool_mem (&list_pool);
+
+    if (element == (struct io_element *)0) return;
 
     element->io = io;
     element->data = data;
