@@ -41,6 +41,9 @@
 
 #include <duat/9p.h>
 
+#include <curie/main.h>
+#include <curie/memory.h>
+
 static void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
 {
@@ -159,7 +162,22 @@ void on_connect(struct io *in, struct io *out, void *p) {
     multiplex_add_duat_9p (io, (void *)0);
 }
 
+static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
+{
+    a_exit(22);
+    return (void *)0;
+}
+
+static void *gm_recover(unsigned long int s)
+{
+    a_exit(23);
+    return (void *)0;
+}
+
 int a_main(void) {
+    set_resize_mem_recovery_function(rm_recover);
+    set_get_mem_recovery_function(gm_recover);
+
     duat_9p_update_user  ("nyu",     1000);
     duat_9p_update_group ("kittens", 100);
 
