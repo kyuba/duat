@@ -271,10 +271,10 @@ int_16 duat_9p_prepare_stat_buffer
                   + 4
                   + 4
                   + 8
-                  + 2 + nlen
-                  + 2 + ulen
-                  + 2 + glen
-                  + 2 + mlen;
+                  + 2
+                  + 2
+                  + 2
+                  + 2;
     int_16 sslen;
     int_8 *b;
     int_16 i;
@@ -283,6 +283,8 @@ int_16 duat_9p_prepare_stat_buffer
     if (uid != (char *)0)  while (uid[ulen])  ulen++;
     if (gid != (char *)0)  while (gid[glen])  glen++;
     if (muid != (char *)0) while (muid[mlen]) mlen++;
+
+    slen += nlen + ulen + glen + mlen;
 
     if (io->version == duat_9p_version_9p2000_dot_u) {
         if (ext != (char *)0) while (ext[xlen]) xlen++;

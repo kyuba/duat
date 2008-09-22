@@ -1,4 +1,4 @@
-import os, subprocess
+import os, subprocess, glob
 
 # LIBRARY FILES
 sourcefiles = [ '9p' ]
@@ -222,8 +222,8 @@ if optimiseLinking:
 if not env['skipPkgConfig']:
   env.Append(LINKFLAGS = subprocess.Popen(['pkg-config', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0],
              CFLAGS = subprocess.Popen(['pkg-config', '--cflags', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
-else:
-  env.Append (LIBS = ['curie'])
+
+env.Append (LIBS = ['curie', 'duat'])
 
 # adjust linker/compiler flags in pkgconfig file
 
@@ -239,6 +239,9 @@ for i in sourcefiles:
 x = env.StaticLibrary('duat', sf)
 env.Alias ('library', x)
 env.Install (libdir, x)
+
+for i in glob.glob('tests/*.c'):
+  env.Program(i)
 
 for i in installheaders:
   x = findheader(i)
