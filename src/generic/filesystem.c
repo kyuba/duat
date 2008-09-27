@@ -36,4 +36,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#include <curie/tree.h>
 #include <duat/filesystem.h>
+
+/* user/group maps */
+
+static struct tree dfs_user_map = TREE_INITIALISER;
+static struct tree dfs_group_map = TREE_INITIALISER;
+
+void   dfs_update_user  (char *user, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&dfs_user_map, user);
+    if (node != (struct tree_node *)0) {
+        node_get_value(node) = (void *)(int_pointer)id;
+    } else {
+        tree_add_node_string_value(&dfs_user_map, user,
+                                    (void *)(int_pointer)id);
+    }
+}
+
+void   dfs_update_group (char *group, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&dfs_group_map, group);
+    if (node != (struct tree_node *)0) {
+        node_get_value(node) = (void *)(int_pointer)id;
+    } else {
+        tree_add_node_string_value(&dfs_group_map, group,
+                                    (void *)(int_pointer)id);
+    }
+}
+
+int_32 dfs_get_user     (char *user) {
+    struct tree_node *node = tree_get_node_string (&dfs_user_map, user);
+    if (node != (struct tree_node *)0) {
+        return (int_32)(int_pointer)node_get_value(node);
+    }
+    return (int_32)0;
+}
+
+int_32 dfs_get_group    (char *group) {
+    struct tree_node *node = tree_get_node_string (&dfs_group_map, group);
+    if (node != (struct tree_node *)0) {
+        return (int_32)(int_pointer)node_get_value(node);
+    }
+    return (int_32)0;
+}

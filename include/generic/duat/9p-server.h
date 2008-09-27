@@ -41,7 +41,7 @@ extern "C" {
 #endif
 
 #ifndef DUAT_9P_SERVER_H
-#define DUAT_9P_H
+#define DUAT_9P_SERVER_H
 
 #include <duat/9p.h>
 

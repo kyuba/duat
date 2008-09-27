@@ -37,6 +37,7 @@
  */
 
 #include <duat/9p.h>
+#include <duat/filesystem.h>
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 
@@ -362,17 +363,17 @@ int_16 d9r_prepare_stat_buffer
         du = 0;
 
         if (uid != (char *)0) {
-            *((int_32 *)(b + i))     = tolel (d9r_get_user(uid));
+            *((int_32 *)(b + i))     = tolel (dfs_get_user(uid));
         } else {
             *((int_32 *)(b + i))     = tolel (du);
         }
         if (gid != (char *)0) {
-            *((int_32 *)(b + i + 4)) = tolel (d9r_get_group(gid));
+            *((int_32 *)(b + i + 4)) = tolel (dfs_get_group(gid));
         } else {
             *((int_32 *)(b + i + 4)) = tolel (du);
         }
         if (muid != (char *)0) {
-            *((int_32 *)(b + i + 8)) = tolel (d9r_get_user(muid));
+            *((int_32 *)(b + i + 8)) = tolel (dfs_get_user(muid));
         } else {
             *((int_32 *)(b + i + 8)) = tolel (du);
         }
@@ -422,13 +423,13 @@ void d9r_parse_stat_buffer
             int_32 nmuid = popl (b + i + 8);
 
             if (*uid != (char *)0) {
-                d9r_update_user (*uid, nuid);
+                dfs_update_user (*uid, nuid);
             }
             if (*gid != (char *)0) {
-                d9r_update_user (*gid, ngid);
+                dfs_update_group (*gid, ngid);
             }
             if (*muid != (char *)0) {
-                d9r_update_user (*muid, nmuid);
+                dfs_update_user (*muid, nmuid);
             }
         }
     }
@@ -1580,45 +1581,4 @@ void d9r_reply_wstat   (struct d9r_io *io, int_16 tag) {
 
 void d9r_reply_flush   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rflush, tag);
-}
-
-/* user/group maps */
-
-static struct tree d9r_user_map = TREE_INITIALISER;
-static struct tree d9r_group_map = TREE_INITIALISER;
-
-void   d9r_update_user  (char *user, int_32 id) {
-    struct tree_node *node = tree_get_node_string (&d9r_user_map, user);
-    if (node != (struct tree_node *)0) {
-        node_get_value(node) = (void *)(int_pointer)id;
-    } else {
-        tree_add_node_string_value(&d9r_user_map, user,
-                                    (void *)(int_pointer)id);
-    }
-}
-
-void   d9r_update_group (char *group, int_32 id) {
-    struct tree_node *node = tree_get_node_string (&d9r_group_map, group);
-    if (node != (struct tree_node *)0) {
-        node_get_value(node) = (void *)(int_pointer)id;
-    } else {
-        tree_add_node_string_value(&d9r_group_map, group,
-                                    (void *)(int_pointer)id);
-    }
-}
-
-int_32 d9r_get_user     (char *user) {
-    struct tree_node *node = tree_get_node_string (&d9r_user_map, user);
-    if (node != (struct tree_node *)0) {
-        return (int_32)(int_pointer)node_get_value(node);
-    }
-    return (int_32)0;
-}
-
-int_32 d9r_get_group    (char *group) {
-    struct tree_node *node = tree_get_node_string (&d9r_group_map, group);
-    if (node != (struct tree_node *)0) {
-        return (int_32)(int_pointer)node_get_value(node);
-    }
-    return (int_32)0;
 }

@@ -40,6 +40,7 @@
 #include <curie/network.h>
 
 #include <duat/9p.h>
+#include <duat/filesystem.h>
 
 #include <curie/main.h>
 #include <curie/memory.h>
@@ -180,8 +181,8 @@ int a_main(void) {
     set_resize_mem_recovery_function(rm_recover);
     set_get_mem_recovery_function(gm_recover);
 
-    d9r_update_user  ("nyu",     1000);
-    d9r_update_group ("kittens", 100);
+    dfs_update_user  ("nyu",     1000);
+    dfs_update_group ("kittens", 100);
 
     multiplex_network();
     multiplex_d9r();

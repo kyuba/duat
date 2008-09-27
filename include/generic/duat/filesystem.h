@@ -43,7 +43,40 @@ extern "C" {
 #ifndef DUAT_FILESYSTEM_H
 #define DUAT_FILESYSTEM_H
 
+#include <curie/int.h>
+
 struct duat_filesystem;
+
+void dfs_add_extended ();
+void dfs_add_simple ();
+
+/*! \brief Set a User's UID
+ *  \param[in] user The user whose ID to update.
+ *  \param[in] uid  The new user ID.
+ *
+ *  The map manipulated by this function is used for the user IDs in the
+ *  9P2000.u stat structures.
+ */
+void   dfs_update_user  (char *user, int_32 uid);
+
+/*! \brief Set a Group's GID
+ *  \param[in] group The group whose ID to update.
+ *  \param[in] gid   The new group ID.
+ *
+ *  The map manipulated by this function is used for the group IDs in the
+ *  9P2000.u stat structures.
+ */
+void   dfs_update_group (char *group, int_32 gid);
+
+/*! \brief Retrieve a User's UID
+ *  \param[in] user The user whose ID to retrieve.
+ *  \return The user's ID. */
+int_32 dfs_get_user     (char *user);
+
+/*! \brief Retrieve a Group's GID
+ *  \param[in] group The group whose ID to retrieve.
+ *  \return The group's ID. */
+int_32 dfs_get_group    (char *group);
 
 #endif
 
