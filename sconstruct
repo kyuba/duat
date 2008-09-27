@@ -1,9 +1,10 @@
 import os, subprocess, glob
 
 # LIBRARY FILES
-sourcefiles = [ '9p' ]
+sourcefiles = [ '9p', '9p-server', '9p-client', 'filesystem' ]
 
-installheaders = [ 'duat/9p' ]
+installheaders = [ 'duat/9p', 'duat/9p-server', 'duat/9p-client',
+                   'duat/filesystem' ]
 
 # OPTIONS
 
