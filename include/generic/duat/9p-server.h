@@ -44,9 +44,10 @@ extern "C" {
 #define DUAT_9P_SERVER_H
 
 #include <duat/9p.h>
+#include <duat/filesystem.h>
 
 void multiplex_d9s ();
-void multiplex_add_d9s_socket (char *);
+void multiplex_add_d9s_socket (char *, struct dfs *);
 
 #endif
 
