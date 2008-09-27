@@ -293,7 +293,7 @@ struct d9r_io {
     void (*Rwstat)  (struct d9r_io *, int_16);
 
     /*! \brief Arbitrary, User-defined Metadata */
-    void *arbitrary;
+    void *aux;
 };
 
 /*! \brief Initialise a 9P Connection on the given IO Structures
@@ -438,7 +438,7 @@ void d9r_reply_error   (struct d9r_io *, int_16, char *, int_16);
  */
 struct d9r_tag_metadata {
     /*! \brief Arbitrary, User-defined Metadata */
-    void *arbitrary;
+    void *aux;
 };
 
 /*! \brief Retrieve Tag Metadata */
@@ -481,7 +481,7 @@ struct d9r_fid_metadata {
     int_16   path_block_size;
 
     /*! \brief Arbitrary, User-defined Metadata */
-    void    *arbitrary;
+    void    *aux;
 };
 
 /*! \brief Retrieve FID Metadata */

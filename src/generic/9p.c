@@ -122,7 +122,7 @@ struct d9r_io *d9r_open_io (struct io *in, struct io *out) {
     rv->Rstat   = (void *)0;
     rv->Rwstat  = (void *)0;
 
-    rv->arbitrary = (void *)0;
+    rv->aux     = (void *)0;
 
     rv->version = d9r_uninitialised;
 
@@ -442,7 +442,7 @@ static void register_tag (struct d9r_io *io, int_16 tag) {
 
     if (md == (struct d9r_tag_metadata *)0) return;
 
-    md->arbitrary = (void *)0;
+    md->aux = (void *)0;
 
     tree_add_node_value (io->tags, (int_pointer)tag, (void *)md);
 }
@@ -491,7 +491,7 @@ static void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc,
 
     if (md == (struct d9r_fid_metadata *)0) return;
 
-    md->arbitrary       = (void *)0;
+    md->aux             = (void *)0;
     md->path_count      = pathc;
 
     md->open            = 0;

@@ -45,10 +45,67 @@ extern "C" {
 
 #include <curie/int.h>
 
-struct duat_filesystem;
+struct dfs_node_common {
+    enum {
+        dft_directory,
+        dft_file,
+        dft_symlink,
+        dft_device,
+        dft_socket
+    } filetype;
+    int_32 atime;
+    int_32 mtime;
+    int_64 length;
+    char *name;
+    char *uid;
+    char *gid;
+    char *muid;
+};
 
-void dfs_add_extended ();
-void dfs_add_simple ();
+struct dfs_directory {
+    struct dfs_node_common c;
+    struct tree nodes;
+};
+
+struct dfs_file {
+    struct dfs_node_common c;
+    char *path;
+    int_8 *data;
+    void *aux;
+    int_32 (*on_write)(struct dfs_file*, int_64, int_32, int_8 *);
+};
+
+struct dfs_symlink {
+    struct dfs_node_common c;
+    char *symlink;
+};
+
+struct dfs_device {
+    struct dfs_node_common c;
+    int_16 majour;
+    int_16 minor;
+};
+
+struct dfs_socket {
+    struct dfs_node_common c;
+};
+
+struct dfs {
+    struct dfs_directory root;
+};
+
+struct dfs *dfs_create ();
+struct dfs_directory *dfs_mk_directory
+        (struct dfs *, int_16, char **);
+struct dfs_file *dfs_mk_file
+        (struct dfs_directory *, char *, int_8 *, int_64,
+         int_32 (*)(int_64, int_32, int_8 *, void *), void *);
+struct dfs_symlink *dfs_mk_symlink
+        (struct dfs_directory *);
+struct dfs_device *dfs_mk_device
+        (struct dfs_directory *);
+struct dfs_socket *dfs_mk_socket
+        (struct dfs_directory *);
 
 /*! \brief Set a User's UID
  *  \param[in] user The user whose ID to update.
