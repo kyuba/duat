@@ -44,18 +44,18 @@
 #include <curie/main.h>
 #include <curie/memory.h>
 
-static void Tattach (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
 {
-    struct duat_9p_qid qid = { 0, 0, 0 };
+    struct d9r_qid qid = { 0, 0, 0 };
 
-    duat_9p_reply_attach (io, tag, qid);
+    d9r_reply_attach (io, tag, qid);
 }
 
-static void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
+static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                    int_16 c, char **names)
 {
-    struct duat_9p_qid qid[c];
+    struct d9r_qid qid[c];
     int_16 i = 0;
 
     while (i < c) {
@@ -65,77 +65,79 @@ static void Twalk (struct duat_9p_io *io, int_16 tag, int_32 fid, int_32 afid,
         i++;
     }
 
-    duat_9p_reply_walk (io, tag, c, qid);
+    d9r_reply_walk (io, tag, c, qid);
 }
 
-static void Tstat (struct duat_9p_io *io, int_16 tag, int_32 fid)
+static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
 {
-    struct duat_9p_fid_metadata *md = duat_9p_fid_metadata (io, fid);
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
 
     if (md->path_count == 0) {
-        struct duat_9p_qid qid = { QTDIR, 1, 2 };
+        struct d9r_qid qid = { QTDIR, 1, 2 };
 
-        duat_9p_reply_stat (io, tag, 1, 1, qid,
+        d9r_reply_stat (io, tag, 1, 1, qid,
                             DMDIR | DMUREAD | DMOREAD | DMGREAD,
                             1, 1, 2,
                             "/", "nyu", "kittens", "nyu", (char *)0);
     } else {
-        struct duat_9p_qid qid = { 0, 1, 2 };
+        struct d9r_qid qid = { 0, 1, 2 };
 
-        duat_9p_reply_stat (io, tag, 1, 1, qid,
+        d9r_reply_stat (io, tag, 1, 1, qid,
                             DMUREAD | DMOREAD | DMGREAD,
                             1, 1, 800,
                             "nyoron", "nyu", "kittens", "nyu", (char *)0);
     }
 }
 
-static void Topen (struct duat_9p_io *io, int_16 tag, int_32 fid, int_8 mode)
+static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
 {
-    struct duat_9p_qid qid = { 0, 1, 2 };
+    struct d9r_qid qid = { 0, 1, 2 };
 
-    duat_9p_reply_open (io, tag, qid, 0x1000);
+    d9r_reply_open (io, tag, qid, 0x1000);
 }
 
-static void Tcreate (struct duat_9p_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
+static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
 {
-    struct duat_9p_qid qid = { 0, 1, 2 };
+    struct d9r_qid qid = { 0, 1, 2 };
 
-    duat_9p_reply_create (io, tag, qid, 0x1000);
+    d9r_reply_create (io, tag, qid, 0x1000);
 }
 
-static void Tread (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 length)
+static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 length)
 {
-    struct duat_9p_fid_metadata *md = duat_9p_fid_metadata (io, fid);
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
 
     if (md->path_count == 0) {
-        struct duat_9p_qid qid = { 0, 1, 2 };
+        struct d9r_qid qid = { 0, 1, 2 };
         int_8 *bb;
         int_16 slen = 0;
 
         if (md->index == 0) {
-            slen = duat_9p_prepare_stat_buffer
+            slen = d9r_prepare_stat_buffer
                     (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
                      1, 1, 6, "nyoron", "nyu", "kittens", "nyu", (char *)0);
-            duat_9p_reply_read (io, tag, slen, bb);
+            d9r_reply_read (io, tag, slen, bb);
+            afree (slen, bb);
         } else if (md->index == 1) {
-            slen = duat_9p_prepare_stat_buffer
+            slen = d9r_prepare_stat_buffer
                     (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
                      1, 1, 6, "nyoronZ", "nyu", "kittens", "nyu", (char *)0);
-            duat_9p_reply_read (io, tag, slen, bb);
+            d9r_reply_read (io, tag, slen, bb);
+            afree (slen, bb);
         } else {
-            duat_9p_reply_read (io, tag, 0, (int_8 *)0);
+            d9r_reply_read (io, tag, 0, (int_8 *)0);
         }
         (md->index)++;
     } else {
         if (offset == 0) {
-            duat_9p_reply_read (io, tag, 6, (int_8 *)"meow!\n");
+            d9r_reply_read (io, tag, 6, (int_8 *)"meow!\n");
         } else {
-            duat_9p_reply_read (io, tag, 0, (int_8 *)0);
+            d9r_reply_read (io, tag, 0, (int_8 *)0);
         }
     }
 }
 
-static void Twrite (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
+static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
 {
     char dd[count + 1];
     int i;
@@ -145,11 +147,11 @@ static void Twrite (struct duat_9p_io *io, int_16 tag, int_32 fid, int_64 offset
     }
     dd[i] = 0;
 
-    duat_9p_reply_write (io, tag, count);
+    d9r_reply_write (io, tag, count);
 }
 
 void on_connect(struct io *in, struct io *out, void *p) {
-    struct duat_9p_io *io = duat_open_io (in, out);
+    struct d9r_io *io = d9r_open_io (in, out);
 
     io->Tattach = Tattach;
     io->Twalk   = Twalk;
@@ -159,7 +161,7 @@ void on_connect(struct io *in, struct io *out, void *p) {
     io->Tread   = Tread;
     io->Twrite  = Twrite;
 
-    multiplex_add_duat_9p (io, (void *)0);
+    multiplex_add_d9r (io, (void *)0);
 }
 
 static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
@@ -178,11 +180,11 @@ int a_main(void) {
     set_resize_mem_recovery_function(rm_recover);
     set_get_mem_recovery_function(gm_recover);
 
-    duat_9p_update_user  ("nyu",     1000);
-    duat_9p_update_group ("kittens", 100);
+    d9r_update_user  ("nyu",     1000);
+    d9r_update_group ("kittens", 100);
 
     multiplex_network();
-    multiplex_duat_9p();
+    multiplex_d9r();
     multiplex_add_socket ("./test-socket-9p", on_connect, (void *)0);
 
     while (multiplex() != mx_nothing_to_do);

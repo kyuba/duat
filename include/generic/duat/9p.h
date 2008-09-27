@@ -185,7 +185,7 @@ extern "C" {
 /*! @} */
 
 /*! \brief A 9P2000 QID */
-struct duat_9p_qid {
+struct d9r_qid {
     /*! \brief The Type of the File */
     int_8  type;
     /*! \brief The 'Version' of the File */
@@ -206,7 +206,7 @@ struct duat_9p_qid {
  *
  *  This structure describes an active 9p2000.u connection.
  */
-struct duat_9p_io {
+struct d9r_io {
     /*! \brief IO input file.
      *  \internal */
     struct io *in;
@@ -217,11 +217,11 @@ struct duat_9p_io {
     /*! \brief 9P Protocol Version */
     enum {
         /*! \brief The connection has not been initialised yet */
-        duat_9p_uninitialised        = 0,
+        d9r_uninitialised        = 0,
         /*! \brief The connection is using the 9P2000 Protocol */
-        duat_9p_version_9p2000       = 1,
+        d9r_version_9p2000       = 1,
         /*! \brief The connection is using the 9P2000.u Protocol */
-        duat_9p_version_9p2000_dot_u = 2
+        d9r_version_9p2000_dot_u = 2
     }
     /*! \brief The negotiated Protocol Version */
     version;
@@ -236,61 +236,61 @@ struct duat_9p_io {
     struct tree *tags;
 
     /*! \brief Callback for an incoming Tauth Message */
-    void (*Tauth)   (struct duat_9p_io *, int_16, int_32, char *, char *);
+    void (*Tauth)   (struct d9r_io *, int_16, int_32, char *, char *);
     /*! \brief Callback for an incoming Tattach Message */
-    void (*Tattach) (struct duat_9p_io *, int_16, int_32, int_32, char *,
+    void (*Tattach) (struct d9r_io *, int_16, int_32, int_32, char *,
                      char *);
     /*! \brief Callback for an incoming Tflush Message */
-    void (*Tflush)  (struct duat_9p_io *, int_16, int_16);
+    void (*Tflush)  (struct d9r_io *, int_16, int_16);
     /*! \brief Callback for an incoming Twalk Message */
-    void (*Twalk)   (struct duat_9p_io *, int_16, int_32, int_32, int_16, char **);
+    void (*Twalk)   (struct d9r_io *, int_16, int_32, int_32, int_16, char **);
     /*! \brief Callback for an incoming Topen Message */
-    void (*Topen)   (struct duat_9p_io *, int_16, int_32, int_8);
+    void (*Topen)   (struct d9r_io *, int_16, int_32, int_8);
     /*! \brief Callback for an incoming Tcreate Message */
-    void (*Tcreate) (struct duat_9p_io *, int_16, int_32, char *, int_32, int_8);
+    void (*Tcreate) (struct d9r_io *, int_16, int_32, char *, int_32, int_8);
     /*! \brief Callback for an incoming Tread Message */
-    void (*Tread)   (struct duat_9p_io *, int_16, int_32, int_64, int_32);
+    void (*Tread)   (struct d9r_io *, int_16, int_32, int_64, int_32);
     /*! \brief Callback for an incoming Twrite Message */
-    void (*Twrite)  (struct duat_9p_io *, int_16, int_32, int_64, int_32, int_8 *);
+    void (*Twrite)  (struct d9r_io *, int_16, int_32, int_64, int_32, int_8 *);
     /*! \brief Callback for an incoming Tclunk Message */
-    void (*Tclunk)  (struct duat_9p_io *, int_16, int_32);
+    void (*Tclunk)  (struct d9r_io *, int_16, int_32);
     /*! \brief Callback for an incoming Tremove Message */
-    void (*Tremove) (struct duat_9p_io *, int_16, int_32);
+    void (*Tremove) (struct d9r_io *, int_16, int_32);
     /*! \brief Callback for an incoming Tstat Message */
-    void (*Tstat)   (struct duat_9p_io *, int_16, int_32);
+    void (*Tstat)   (struct d9r_io *, int_16, int_32);
     /*! \brief Callback for an incoming Twstat Message */
-    void (*Twstat)  (struct duat_9p_io *, int_16, int_32, int_16, int_32,
-                     struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
+    void (*Twstat)  (struct d9r_io *, int_16, int_32, int_16, int_32,
+                     struct d9r_qid, int_32, int_32, int_32, int_64, char *,
                      char *, char *, char *, char *);
 
     /*! \brief Callback for an incoming Rauth Message */
-    void (*Rauth)   (struct duat_9p_io *, int_16, struct duat_9p_qid);
+    void (*Rauth)   (struct d9r_io *, int_16, struct d9r_qid);
     /*! \brief Callback for an incoming Rattach Message */
-    void (*Rattach) (struct duat_9p_io *, int_16, struct duat_9p_qid);
+    void (*Rattach) (struct d9r_io *, int_16, struct d9r_qid);
     /*! \brief Callback for an incoming Rerror Message */
-    void (*Rerror)  (struct duat_9p_io *, int_16, char *, int_16);
+    void (*Rerror)  (struct d9r_io *, int_16, char *, int_16);
     /*! \brief Callback for an incoming Rflush Message */
-    void (*Rflush)  (struct duat_9p_io *, int_16);
+    void (*Rflush)  (struct d9r_io *, int_16);
     /*! \brief Callback for an incoming Rwalk Message */
-    void (*Rwalk)   (struct duat_9p_io *, int_16, int_16, struct duat_9p_qid *);
+    void (*Rwalk)   (struct d9r_io *, int_16, int_16, struct d9r_qid *);
     /*! \brief Callback for an incoming Ropen Message */
-    void (*Ropen)   (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+    void (*Ropen)   (struct d9r_io *, int_16, struct d9r_qid, int_32);
     /*! \brief Callback for an incoming Rcreate Message */
-    void (*Rcreate) (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+    void (*Rcreate) (struct d9r_io *, int_16, struct d9r_qid, int_32);
     /*! \brief Callback for an incoming Rread Message */
-    void (*Rread)   (struct duat_9p_io *, int_16, int_32, int_8 *);
+    void (*Rread)   (struct d9r_io *, int_16, int_32, int_8 *);
     /*! \brief Callback for an incoming Rwrite Message */
-    void (*Rwrite)  (struct duat_9p_io *, int_16, int_32);
+    void (*Rwrite)  (struct d9r_io *, int_16, int_32);
     /*! \brief Callback for an incoming Rclunk Message */
-    void (*Rclunk)  (struct duat_9p_io *, int_16);
+    void (*Rclunk)  (struct d9r_io *, int_16);
     /*! \brief Callback for an incoming Rremove Message */
-    void (*Rremove) (struct duat_9p_io *, int_16);
+    void (*Rremove) (struct d9r_io *, int_16);
     /*! \brief Callback for an incoming Rstat Message */
-    void (*Rstat)   (struct duat_9p_io *, int_16, int_16, int_32,
-                     struct duat_9p_qid, int_32, int_32, int_32, int_64, char *,
+    void (*Rstat)   (struct d9r_io *, int_16, int_16, int_32,
+                     struct d9r_qid, int_32, int_32, int_32, int_64, char *,
                      char *, char *, char *, char *);
     /*! \brief Callback for an incoming Rwstat Message */
-    void (*Rwstat)  (struct duat_9p_io *, int_16);
+    void (*Rwstat)  (struct d9r_io *, int_16);
 
     /*! \brief Arbitrary, User-defined Metadata */
     void *arbitrary;
@@ -299,35 +299,35 @@ struct duat_9p_io {
 /*! \brief Initialise a 9P Connection on the given IO Structures
  *  \param[in] in  Input file.
  *  \param[in] out Output file.
- *  \return A new duat_9p_io structure.
+ *  \return A new d9r_io structure.
  *
  *  After this function has been called, the IO structures may not be
  *  manipulated directly.
  */
-/*@null@*/ struct duat_9p_io *duat_open_io
+/*@null@*/ struct d9r_io *d9r_open_io
         (/*@notnull@*/ struct io *in, /*@notnull@*/ struct io *out);
 
 /*! \brief Open the Standard In- and Output of the Process as a 9P Connection */
-/*@null@*/ struct duat_9p_io *duat_open_stdio();
+/*@null@*/ struct d9r_io *d9r_open_stdio();
 
 /*! \brief Close the given 9P Connection
  *
  *  This will also free the structure's memory and close the in and out file
  *  descriptors.
  */
-void duat_close_io (struct duat_9p_io *);
+void d9r_close_io (struct d9r_io *);
 
 /*! \brief Initialise the 9P Multiplexer
  *
  *  This function is used to initialise curie's multiplex() function so that 9P
  *  connections can be used with it.
  */
-void multiplex_duat_9p ();
+void multiplex_d9r ();
 
 /*! \brief Multiplex the given Connection
  *  \param[in] data Arbitrary, user-defined data.
  */
-void multiplex_add_duat_9p (struct duat_9p_io *, void *data);
+void multiplex_add_d9r (struct d9r_io *, void *data);
 
 /*! @} */
 
@@ -347,85 +347,85 @@ void multiplex_add_duat_9p (struct duat_9p_io *, void *data);
 
 /*! \brief Send a Tversion Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_version (struct duat_9p_io *, int_32, char *);
+int_16 d9r_version (struct d9r_io *, int_32, char *);
 /*! \brief Send a Tauth Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_auth    (struct duat_9p_io *, int_32, char *, char *);
+int_16 d9r_auth    (struct d9r_io *, int_32, char *, char *);
 /*! \brief Send a Tattach Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_attach  (struct duat_9p_io *, int_32, int_32, char *, char *);
+int_16 d9r_attach  (struct d9r_io *, int_32, int_32, char *, char *);
 /*! \brief Send a Tflush Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_flush   (struct duat_9p_io *, int_16);
+int_16 d9r_flush   (struct d9r_io *, int_16);
 /*! \brief Send a Twalk Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_walk    (struct duat_9p_io *, int_32, int_32, int_16, char **);
+int_16 d9r_walk    (struct d9r_io *, int_32, int_32, int_16, char **);
 /*! \brief Send a Topen Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_open    (struct duat_9p_io *, int_32, int_8);
+int_16 d9r_open    (struct d9r_io *, int_32, int_8);
 /*! \brief Send a Tcreate Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_create  (struct duat_9p_io *, int_32, char *, int_32, int_8);
+int_16 d9r_create  (struct d9r_io *, int_32, char *, int_32, int_8);
 /*! \brief Send a Tread Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_read    (struct duat_9p_io *, int_32, int_64, int_32);
+int_16 d9r_read    (struct d9r_io *, int_32, int_64, int_32);
 /*! \brief Send a Twrite Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_write   (struct duat_9p_io *, int_32, int_64, int_32, int_8 *);
+int_16 d9r_write   (struct d9r_io *, int_32, int_64, int_32, int_8 *);
 /*! \brief Send a Tclunk Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_clunk   (struct duat_9p_io *, int_32);
+int_16 d9r_clunk   (struct d9r_io *, int_32);
 /*! \brief Send a Tremove Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_remove  (struct duat_9p_io *, int_32);
+int_16 d9r_remove  (struct d9r_io *, int_32);
 /*! \brief Send a Tstat Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_stat    (struct duat_9p_io *, int_32);
+int_16 d9r_stat    (struct d9r_io *, int_32);
 /*! \brief Send a Twstat Message
  *  \return The tag the request was sent with. */
-int_16 duat_9p_wstat   (struct duat_9p_io *, int_32, int_16, int_32,
-                        struct duat_9p_qid, int_32, int_32, int_32, int_64,
+int_16 d9r_wstat   (struct d9r_io *, int_32, int_16, int_32,
+                        struct d9r_qid, int_32, int_32, int_32, int_64,
                         char *, char *, char *, char *, char *);
 
 /*! \brief Send an Rversion Message */
-void duat_9p_reply_version (struct duat_9p_io *, int_16, int_32, char *);
+void d9r_reply_version (struct d9r_io *, int_16, int_32, char *);
 /*! \brief Send an Rauth Message */
-void duat_9p_reply_auth    (struct duat_9p_io *, int_16, struct duat_9p_qid);
+void d9r_reply_auth    (struct d9r_io *, int_16, struct d9r_qid);
 /*! \brief Send an Rattach Message */
-void duat_9p_reply_attach  (struct duat_9p_io *, int_16, struct duat_9p_qid);
+void d9r_reply_attach  (struct d9r_io *, int_16, struct d9r_qid);
 /*! \brief Send an Rflush Message */
-void duat_9p_reply_flush   (struct duat_9p_io *, int_16);
+void d9r_reply_flush   (struct d9r_io *, int_16);
 /*! \brief Send an Rwalk Message */
-void duat_9p_reply_walk    (struct duat_9p_io *, int_16, int_16,
-                            struct duat_9p_qid *);
+void d9r_reply_walk    (struct d9r_io *, int_16, int_16,
+                            struct d9r_qid *);
 /*! \brief Send an Ropen Message */
-void duat_9p_reply_open    (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+void d9r_reply_open    (struct d9r_io *, int_16, struct d9r_qid, int_32);
 /*! \brief Send an Rcreate Message */
-void duat_9p_reply_create  (struct duat_9p_io *, int_16, struct duat_9p_qid, int_32);
+void d9r_reply_create  (struct d9r_io *, int_16, struct d9r_qid, int_32);
 /*! \brief Send an Rread Message */
-void duat_9p_reply_read    (struct duat_9p_io *, int_16, int_32, int_8 *);
+void d9r_reply_read    (struct d9r_io *, int_16, int_32, int_8 *);
 /*! \brief Send an Rwrite Message */
-void duat_9p_reply_write   (struct duat_9p_io *, int_16, int_32);
+void d9r_reply_write   (struct d9r_io *, int_16, int_32);
 /*! \brief Send an Rclunk Message */
-void duat_9p_reply_clunk   (struct duat_9p_io *, int_16);
+void d9r_reply_clunk   (struct d9r_io *, int_16);
 /*! \brief Send an Rremove Message */
-void duat_9p_reply_remove  (struct duat_9p_io *, int_16);
+void d9r_reply_remove  (struct d9r_io *, int_16);
 /*! \brief Send an Rstat Message */
-void duat_9p_reply_stat    (struct duat_9p_io *, int_16, int_16, int_32,
-                            struct duat_9p_qid, int_32, int_32, int_32, int_64,
+void d9r_reply_stat    (struct d9r_io *, int_16, int_16, int_32,
+                            struct d9r_qid, int_32, int_32, int_32, int_64,
                             char *, char *, char *, char *, char *);
 /*! \brief Send an Rwstat Message */
-void duat_9p_reply_wstat   (struct duat_9p_io *, int_16);
+void d9r_reply_wstat   (struct d9r_io *, int_16);
 
 /*! \brief Send an Rerror Message */
-void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *, int_16);
+void d9r_reply_error   (struct d9r_io *, int_16, char *, int_16);
 
 /*! @} */
 
 /*! \defgroup P9TagMetadata 9p Tag Metadata
  *  \brief 9p Tag Metadata Handling
  *
- *  All active tags are tracked in the duat_9p_io struct, along with some
+ *  All active tags are tracked in the d9r_io struct, along with some
  *  metadata.
  *
  *  @{
@@ -436,19 +436,19 @@ void duat_9p_reply_error   (struct duat_9p_io *, int_16, char *, int_16);
  *  This struct can be used to keep track of additional metadata required to
  *  process a request.
  */
-struct duat_9p_tag_metadata {
+struct d9r_tag_metadata {
     /*! \brief Arbitrary, User-defined Metadata */
     void *arbitrary;
 };
 
 /*! \brief Retrieve Tag Metadata */
-struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
+struct d9r_tag_metadata *d9r_tag_metadata (struct d9r_io *, int_16);
 /*! @} */
 
 /*! \defgroup P9FIDMetadata 9p FID Handling
  *  \brief 9p FID Metadata Handling
  *
- *  All active fids are tracked in the duat_9p_io struct, along with some
+ *  All active fids are tracked in the d9r_io struct, along with some
  *  metadata. The metadata also encompasses the file that the fid points to,
  *  and it has provisions for keeping track of whether it is open and the mode
  *  it is open as.
@@ -461,8 +461,8 @@ struct duat_9p_tag_metadata *duat_9p_tag_metadata (struct duat_9p_io *, int_16);
  *  This struct can be used to keep track of additional metadata required to
  *  process a request.
  */
-struct duat_9p_fid_metadata {
-    /*! \brief Elements in duat_9p_fid_metadata.path */
+struct d9r_fid_metadata {
+    /*! \brief Elements in d9r_fid_metadata.path */
     int_16   path_count;
     /*! \brief The Path pointed to by this FID */
     char   **path;
@@ -476,7 +476,7 @@ struct duat_9p_fid_metadata {
      *         File Listing */
     int_32   index;
 
-    /*! \brief Size (in bytes) of duat_9p_fid_metadata.path
+    /*! \brief Size (in bytes) of d9r_fid_metadata.path
      *  \internal */
     int_16   path_block_size;
 
@@ -485,7 +485,7 @@ struct duat_9p_fid_metadata {
 };
 
 /*! \brief Retrieve FID Metadata */
-struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
+struct d9r_fid_metadata *d9r_fid_metadata (struct d9r_io *, int_32);
 /*! @} */
 
 /*! \defgroup P9UtilityFunctions 9P Utility Functions
@@ -517,9 +517,9 @@ struct duat_9p_fid_metadata *duat_9p_fid_metadata (struct duat_9p_io *, int_32);
  *
  *  Use curie's afree() to free the generated buffer.
  */
-int_16 duat_9p_prepare_stat_buffer
-        (struct duat_9p_io *io, int_8 **buffer, int_16 type, int_32 dev,
-         struct duat_9p_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
+int_16 d9r_prepare_stat_buffer
+        (struct d9r_io *io, int_8 **buffer, int_16 type, int_32 dev,
+         struct d9r_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
          int_64 length, char *name, char *uid, char *gid, char *muid, char *ex);
 
 /*! \brief Parse a stat buffer.
@@ -540,9 +540,9 @@ int_16 duat_9p_prepare_stat_buffer
  *  \param[out] muid   The name of the user who last modified the file.
  *  \param[out] ex     9P2000.u extension field.
  */
-void duat_9p_parse_stat_buffer
-        (struct duat_9p_io *io, int_32 blength, int_8 *buffer, int_16 *type,
-         int_32 *dev, struct duat_9p_qid *qid, int_32 *mode, int_32 *atime,
+void d9r_parse_stat_buffer
+        (struct d9r_io *io, int_32 blength, int_8 *buffer, int_16 *type,
+         int_32 *dev, struct d9r_qid *qid, int_32 *mode, int_32 *atime,
          int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
          char **muid, char **ex);
 
@@ -553,7 +553,7 @@ void duat_9p_parse_stat_buffer
  *  The map manipulated by this function is used for the user IDs in the
  *  9P2000.u stat structures.
  */
-void   duat_9p_update_user  (char *user, int_32 uid);
+void   d9r_update_user  (char *user, int_32 uid);
 
 /*! \brief Set a Group's GID
  *  \param[in] group The group whose ID to update.
@@ -562,17 +562,17 @@ void   duat_9p_update_user  (char *user, int_32 uid);
  *  The map manipulated by this function is used for the group IDs in the
  *  9P2000.u stat structures.
  */
-void   duat_9p_update_group (char *group, int_32 gid);
+void   d9r_update_group (char *group, int_32 gid);
 
 /*! \brief Retrieve a User's UID
  *  \param[in] user The user whose ID to retrieve.
  *  \return The user's ID. */
-int_32 duat_9p_get_user     (char *user);
+int_32 d9r_get_user     (char *user);
 
 /*! \brief Retrieve a Group's GID
  *  \param[in] group The group whose ID to retrieve.
  *  \return The group's ID. */
-int_32 duat_9p_get_group    (char *group);
+int_32 d9r_get_group    (char *group);
 
 /*! @} */
 

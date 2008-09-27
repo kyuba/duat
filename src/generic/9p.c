@@ -40,11 +40,11 @@
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 
-static unsigned int pop_message (unsigned char *, int_32, struct duat_9p_io *,
+static unsigned int pop_message (unsigned char *, int_32, struct d9r_io *,
                                  void *);
 
 struct io_element {
-    struct duat_9p_io *io;
+    struct d9r_io *io;
     void *data;
 };
 
@@ -81,16 +81,12 @@ enum request_code {
     Rwstat   = 127,
 };
 
-static struct memory_pool list_pool = MEMORY_POOL_INITIALISER(sizeof (struct io_element));
-static struct memory_pool duat_io_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_io));
+struct d9r_io *d9r_open_io (struct io *in, struct io *out) {
+    static struct memory_pool d9r_io_pool = MEMORY_POOL_INITIALISER(sizeof (struct d9r_io));
 
-static struct memory_pool duat_tag_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_tag_metadata));
-static struct memory_pool duat_fid_pool = MEMORY_POOL_INITIALISER(sizeof (struct duat_9p_fid_metadata));
+    struct d9r_io *rv = get_pool_mem (&d9r_io_pool);
 
-struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
-    struct duat_9p_io *rv = get_pool_mem (&duat_io_pool);
-
-    if (rv == (struct duat_9p_io *)0) return (struct duat_9p_io *)0;
+    if (rv == (struct d9r_io *)0) return (struct d9r_io *)0;
 
     rv->in = in;
     rv->out = out;
@@ -127,7 +123,7 @@ struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
 
     rv->arbitrary = (void *)0;
 
-    rv->version = duat_9p_uninitialised;
+    rv->version = d9r_uninitialised;
 
     in->type = iot_read;
     out->type = iot_write;
@@ -135,32 +131,32 @@ struct duat_9p_io *duat_open_io (struct io *in, struct io *out) {
     return rv;
 }
 
-struct duat_9p_io *duat_open_stdio() {
+struct d9r_io *d9r_open_stdio() {
     struct io *in, *out;
 
     if ((in = io_open (0)) == (struct io *)0)
     {
-        return (struct duat_9p_io *)0;
+        return (struct d9r_io *)0;
     }
 
     if ((out = io_open (1)) == (struct io *)0)
     {
         io_close (in);
-        return (struct duat_9p_io *)0;
+        return (struct d9r_io *)0;
     }
 
-    return duat_open_io (in, out);
+    return d9r_open_io (in, out);
 }
 
 
-void duat_close_io (struct duat_9p_io *io) {
+void d9r_close_io (struct d9r_io *io) {
     io_close (io->in);
     io_close (io->out);
 
     free_pool_mem (io);
 }
 
-void multiplex_duat_9p () {
+void multiplex_d9r () {
     static char installed = (char)0;
 
     if (installed == (char)0) {
@@ -253,9 +249,9 @@ static char *pop_string (unsigned char *b, int_32 *ip, int_32 length) {
     return (void *)bs;
 }
 
-int_16 duat_9p_prepare_stat_buffer
-        (struct duat_9p_io *io, int_8 **buffer, int_16 type, int_32 dev,
-         struct duat_9p_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
+int_16 d9r_prepare_stat_buffer
+        (struct d9r_io *io, int_8 **buffer, int_16 type, int_32 dev,
+         struct d9r_qid *qid, int_32 mode, int_32 atime, int_32 mtime,
          int_64 length, char *name, char *uid, char *gid, char *muid, char *ext)
 {
     int_16 nlen = 0;
@@ -286,7 +282,7 @@ int_16 duat_9p_prepare_stat_buffer
 
     slen += nlen + ulen + glen + mlen;
 
-    if (io->version == duat_9p_version_9p2000_dot_u) {
+    if (io->version == d9r_version_9p2000_dot_u) {
         if (ext != (char *)0) while (ext[xlen]) xlen++;
         slen += 2 + xlen + 4 + 4 + 4;
     }
@@ -350,7 +346,7 @@ int_16 duat_9p_prepare_stat_buffer
         }
     };
 
-    if (io->version == duat_9p_version_9p2000_dot_u) {
+    if (io->version == d9r_version_9p2000_dot_u) {
         int_32 du;
 
         *((int_16 *)(b + i))  = tolew (xlen);
@@ -366,17 +362,17 @@ int_16 duat_9p_prepare_stat_buffer
         du = 0;
 
         if (uid != (char *)0) {
-            *((int_32 *)(b + i))     = tolel (duat_9p_get_user(uid));
+            *((int_32 *)(b + i))     = tolel (d9r_get_user(uid));
         } else {
             *((int_32 *)(b + i))     = tolel (du);
         }
         if (gid != (char *)0) {
-            *((int_32 *)(b + i + 4)) = tolel (duat_9p_get_group(gid));
+            *((int_32 *)(b + i + 4)) = tolel (d9r_get_group(gid));
         } else {
             *((int_32 *)(b + i + 4)) = tolel (du);
         }
         if (muid != (char *)0) {
-            *((int_32 *)(b + i + 8)) = tolel (duat_9p_get_user(muid));
+            *((int_32 *)(b + i + 8)) = tolel (d9r_get_user(muid));
         } else {
             *((int_32 *)(b + i + 8)) = tolel (du);
         }
@@ -386,9 +382,9 @@ int_16 duat_9p_prepare_stat_buffer
     return sslen;
 }
 
-void duat_9p_parse_stat_buffer
-        (struct duat_9p_io *io, int_32 slen, int_8 *b, int_16 *type,
-         int_32 *dev, struct duat_9p_qid *qid, int_32 *mode, int_32 *atime,
+void d9r_parse_stat_buffer
+        (struct d9r_io *io, int_32 slen, int_8 *b, int_16 *type,
+         int_32 *dev, struct d9r_qid *qid, int_32 *mode, int_32 *atime,
          int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
          char **muid, char **ext)
 {
@@ -416,7 +412,7 @@ void duat_9p_parse_stat_buffer
     *gid         = pop_string(b, &i, (int_32)sl);
     *muid        = pop_string(b, &i, (int_32)sl);
 
-    if (io->version == duat_9p_version_9p2000_dot_u) {
+    if (io->version == d9r_version_9p2000_dot_u) {
         if (slen < (i + 2)) return;
         *ext = pop_string(b, &i, (int_32)sl);
 
@@ -426,39 +422,41 @@ void duat_9p_parse_stat_buffer
             int_32 nmuid = popl (b + i + 8);
 
             if (*uid != (char *)0) {
-                duat_9p_update_user (*uid, nuid);
+                d9r_update_user (*uid, nuid);
             }
             if (*gid != (char *)0) {
-                duat_9p_update_user (*gid, ngid);
+                d9r_update_user (*gid, ngid);
             }
             if (*muid != (char *)0) {
-                duat_9p_update_user (*muid, nmuid);
+                d9r_update_user (*muid, nmuid);
             }
         }
     }
 }
 
-static void register_tag (struct duat_9p_io *io, int_16 tag) {
-    struct duat_9p_tag_metadata *md = get_pool_mem (&duat_tag_pool);
+static void register_tag (struct d9r_io *io, int_16 tag) {
+    static struct memory_pool d9r_tag_pool = MEMORY_POOL_INITIALISER(sizeof (struct d9r_tag_metadata));
 
-    if (md == (struct duat_9p_tag_metadata *)0) return;
+    struct d9r_tag_metadata *md = get_pool_mem (&d9r_tag_pool);
+
+    if (md == (struct d9r_tag_metadata *)0) return;
 
     md->arbitrary = (void *)0;
 
     tree_add_node_value (io->tags, (int_pointer)tag, (void *)md);
 }
 
-static void kill_tag (struct duat_9p_io *io, int_16 tag) {
+static void kill_tag (struct d9r_io *io, int_16 tag) {
     struct tree_node *n =
             tree_get_node(io->tags, (int_pointer)tag);
 
     if (n != (struct tree_node *)0) {
-        free_pool_mem ((struct duat_9p_tag_metadata *)node_get_value(n));
+        free_pool_mem ((struct d9r_tag_metadata *)node_get_value(n));
         tree_remove_node (io->tags, tag);
     }
 }
 
-static int_16 find_free_tag (struct duat_9p_io *io) {
+static int_16 find_free_tag (struct d9r_io *io) {
     int_16 tag = 0;
 
     while (tree_get_node(io->tags, (int_pointer)tag) != (struct tree_node *)0) tag++;
@@ -468,27 +466,29 @@ static int_16 find_free_tag (struct duat_9p_io *io) {
     return tag;
 }
 
-struct duat_9p_tag_metadata *
-        duat_9p_tag_metadata (struct duat_9p_io *io, int_16 tag)
+struct d9r_tag_metadata *
+        d9r_tag_metadata (struct d9r_io *io, int_16 tag)
 {
     struct tree_node *n =
             tree_get_node(io->tags, (int_pointer)tag);
 
     if (n != (struct tree_node *)0) {
-        return (struct duat_9p_tag_metadata *)node_get_value(n);
+        return (struct d9r_tag_metadata *)node_get_value(n);
     }
 
-    return (struct duat_9p_tag_metadata *)0;
+    return (struct d9r_tag_metadata *)0;
 }
 
-static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
+static void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc,
                           char **path)
 {
+    static struct memory_pool d9r_fid_pool = MEMORY_POOL_INITIALISER(sizeof (struct d9r_fid_metadata));
+
     int_16 i = 0, size = 0;
 
-    struct duat_9p_fid_metadata *md = get_pool_mem (&duat_fid_pool);
+    struct d9r_fid_metadata *md = get_pool_mem (&d9r_fid_pool);
 
-    if (md == (struct duat_9p_fid_metadata *)0) return;
+    if (md == (struct d9r_fid_metadata *)0) return;
 
     md->arbitrary       = (void *)0;
     md->path_count      = pathc;
@@ -544,13 +544,13 @@ static void register_fid (struct duat_9p_io *io, int_32 fid, int_16 pathc,
     tree_add_node_value (io->fids, (int_pointer)fid, (void *)md);
 }
 
-static void kill_fid (struct duat_9p_io *io, int_32 fid) {
+static void kill_fid (struct d9r_io *io, int_32 fid) {
     struct tree_node *n =
             tree_get_node(io->fids, (int_pointer)fid);
 
     if (n != (struct tree_node *)0) {
-        struct duat_9p_fid_metadata *md =
-                (struct duat_9p_fid_metadata *)node_get_value(n);
+        struct d9r_fid_metadata *md =
+                (struct d9r_fid_metadata *)node_get_value(n);
 
         if ((md->path_block_size > 0) &&
             (md->path != (char **)0))
@@ -563,17 +563,17 @@ static void kill_fid (struct duat_9p_io *io, int_32 fid) {
     }
 }
 
-struct duat_9p_fid_metadata *
-        duat_9p_fid_metadata (struct duat_9p_io *io, int_32 fid)
+struct d9r_fid_metadata *
+        d9r_fid_metadata (struct d9r_io *io, int_32 fid)
 {
     struct tree_node *n =
             tree_get_node(io->fids, (int_pointer)fid);
 
     if (n != (struct tree_node *)0) {
-        return (struct duat_9p_fid_metadata *)node_get_value(n);
+        return (struct d9r_fid_metadata *)node_get_value(n);
     }
 
-    return (struct duat_9p_fid_metadata *)0;
+    return (struct d9r_fid_metadata *)0;
 }
 
 #define VERSION_STRING_9P2000 "9P2000"
@@ -604,7 +604,9 @@ static void mx_on_close_9p (struct io *in, void *d) {
     free_pool_mem (d);
 }
 
-void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
+void multiplex_add_d9r (struct d9r_io *io, void *data) {
+    static struct memory_pool list_pool = MEMORY_POOL_INITIALISER(sizeof (struct io_element));
+
     struct io_element *element = get_pool_mem (&list_pool);
 
     if (element == (struct io_element *)0) return;
@@ -619,7 +621,7 @@ void multiplex_add_duat_9p (struct duat_9p_io *io, void *data) {
 /* message parser */
 
 static unsigned int pop_message (unsigned char *b, int_32 length,
-                                 struct duat_9p_io *io, void *d) {
+                                 struct d9r_io *io, void *d) {
     enum request_code code = (enum request_code)(b[4]);
     int_16 tag = popw (b + 5);
     int_32 i = 7;
@@ -652,15 +654,15 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                       ((versionstring[6] == '.') &&
                        (versionstring[7] == 'u') &&
                        (versionstring[8] == (char)0)) ?
-                            duat_9p_version_9p2000_dot_u :
-                            duat_9p_version_9p2000;
+                            d9r_version_9p2000_dot_u :
+                            d9r_version_9p2000;
 
-                    duat_9p_reply_version(io, tag, msize, ((io->version == duat_9p_version_9p2000_dot_u) ? "9P2000.u" : "9P2000"));
+                    d9r_reply_version(io, tag, msize, ((io->version == d9r_version_9p2000_dot_u) ? "9P2000.u" : "9P2000"));
 
                     return length;
                 }
 
-                duat_9p_reply_version(io, tag, msize, "unknown");
+                d9r_reply_version(io, tag, msize, "unknown");
                 return length;
             }
             break;
@@ -690,10 +692,10 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                           ((versionstring[6] == '.') &&
                            (versionstring[7] == 'u') &&
                            (versionstring[8] == (char)0)) ?
-                                duat_9p_version_9p2000_dot_u :
-                                duat_9p_version_9p2000;
+                                d9r_version_9p2000_dot_u :
+                                d9r_version_9p2000;
                     } else {
-                        io->version = duat_9p_uninitialised;
+                        io->version = d9r_uninitialised;
                     }
                 }
             }
@@ -724,7 +726,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (io->Rauth == (void *)0) return length;
 
             if (length >= 20) {
-                struct duat_9p_qid qid = {
+                struct d9r_qid qid = {
                     .type = b[7],
                     .version = popl (b + 8),
                     .path = popq (b + 12)
@@ -762,7 +764,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (io->Rattach == (void *)0) return length;
 
             if (length >= 20) {
-                struct duat_9p_qid qid = {
+                struct d9r_qid qid = {
                     .type = b[7],
                     .version = popl (b + 8),
                     .path = popq (b + 12)
@@ -780,7 +782,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 int_16 errno = P9_EDONTCARE;
 
                 if (message != (char *)0) return length;
-                if ((io->version == duat_9p_version_9p2000_dot_u) &&
+                if ((io->version == d9r_version_9p2000_dot_u) &&
                     (length >= (i + 2)))
                 {
                     errno = popw (b + i);
@@ -827,7 +829,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     names[namei] = pop_string(b, &i, length);
 
                     if (names[namei] == (char *)0) {
-                        duat_9p_reply_error (io, tag, "Malformed message.",
+                        d9r_reply_error (io, tag, "Malformed message.",
                                              P9_EDONTCARE);
                         return length;
                     }
@@ -848,7 +850,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 int_16 qidc = popw (b + 7);
                 int_16 r = 0;
 
-                struct duat_9p_qid qid[qidc];
+                struct d9r_qid qid[qidc];
 
                 i = 9;
 
@@ -884,7 +886,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (io->Ropen == (void *)0) return length;
 
             if (length >= 24) {
-                struct duat_9p_qid qid = {
+                struct d9r_qid qid = {
                     .type    = b[7],
                     .version = popl (b + 8),
                     .path    = popq (b + 12)
@@ -922,7 +924,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (io->Rcreate == (void *)0) return length;
 
             if (length >= 24) {
-                struct duat_9p_qid qid = {
+                struct d9r_qid qid = {
                     .type    = b[7],
                     .version = popl (b + 8),
                     .path    = popq (b + 12)
@@ -991,7 +993,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 if (io->Tclunk == (void *)0)
                 {
-                    duat_9p_reply_clunk (io, tag);
+                    d9r_reply_clunk (io, tag);
                 }
                 else
                 {
@@ -1017,7 +1019,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 if (io->Tremove == (void *)0)
                 {
-                    duat_9p_reply_remove (io, tag);
+                    d9r_reply_remove (io, tag);
                 }
                 else
                 {
@@ -1054,12 +1056,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
             if (length >= 45) {
                 int_16 slen = popw (b + 7), type;
-                struct duat_9p_qid qid;
+                struct d9r_qid qid;
                 int_32 dev, mode, atime, mtime;
                 int_64 length;
                 char *name, *uid, *gid, *muid, *ext;
 
-                duat_9p_parse_stat_buffer
+                d9r_parse_stat_buffer
                         (io, (int_32)slen, b + 9, &type, &dev, &qid, &mode,
                          &atime, &mtime, &length, &name, &uid, &gid, &muid,
                          &ext);
@@ -1074,12 +1076,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
             if (length >= 49) {
                 int_16 slen = popw (b + 11), type;
-                struct duat_9p_qid qid;
+                struct d9r_qid qid;
                 int_32 fid = popl (b + 7), dev, mode, atime, mtime;
                 int_64 length;
                 char *name, *uid, *gid, *muid, *ext;
 
-                duat_9p_parse_stat_buffer
+                d9r_parse_stat_buffer
                         (io, (int_32)slen, b + 13, &type, &dev, &qid, &mode,
                          &atime, &mtime, &length, &name, &uid, &gid, &muid,
                          &ext);
@@ -1101,7 +1103,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
     }
 
-    duat_9p_reply_error (io, tag,
+    d9r_reply_error (io, tag,
                          "Function not implemented or malformed message.",
                          P9_EDONTCARE);
 
@@ -1110,7 +1112,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
 /* utility functions */
 
-static void collect_qid (struct io *out, struct duat_9p_qid *qid) {
+static void collect_qid (struct io *out, struct d9r_qid *qid) {
     int_32 ol = tolel (qid->version);
     int_64 t  = toleq (qid->path);
 
@@ -1129,7 +1131,7 @@ static void collect_header (struct io *out, int_32 ol, int_8 c, int_16 tag) {
 }
 
 static void collect_header_reply
-        (struct duat_9p_io *io, int_32 ol, int_8 c, int_16 tag)
+        (struct d9r_io *io, int_32 ol, int_8 c, int_16 tag)
 {
     kill_tag(io, tag);
 
@@ -1138,7 +1140,7 @@ static void collect_header_reply
 
 /* request messages */
 
-int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
+int_16 d9r_version (struct d9r_io *io, int_32 msize, char *version) {
     struct io *out = io->out;
     int_16 len = 0, slen;
     while (version[len]) len++;
@@ -1156,7 +1158,7 @@ int_16 duat_9p_version (struct duat_9p_io *io, int_32 msize, char *version) {
     return NO_TAG_9P;
 }
 
-int_16 duat_9p_auth    (struct duat_9p_io *io, int_32 afid, char *uname,
+int_16 d9r_auth    (struct d9r_io *io, int_32 afid, char *uname,
                         char *aname)
 {
     int_16 otag = find_free_tag (io);
@@ -1187,7 +1189,7 @@ int_16 duat_9p_auth    (struct duat_9p_io *io, int_32 afid, char *uname,
     return otag;
 }
 
-int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
+int_16 d9r_attach  (struct d9r_io *io, int_32 fid, int_32 afid,
                         char *uname, char *aname)
 {
     int_16 otag = find_free_tag (io);
@@ -1220,7 +1222,7 @@ int_16 duat_9p_attach  (struct duat_9p_io *io, int_32 fid, int_32 afid,
     return otag;
 }
 
-int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
+int_16 d9r_walk    (struct d9r_io *io, int_32 fid, int_32 newfid,
                         int_16 pathcount, char **path)
 {
     struct io *out = io->out;
@@ -1261,7 +1263,7 @@ int_16 duat_9p_walk    (struct duat_9p_io *io, int_32 fid, int_32 newfid,
 }
 
 
-int_16 duat_9p_stat    (struct duat_9p_io *io, int_32 fid)
+int_16 d9r_stat    (struct d9r_io *io, int_32 fid)
 {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
@@ -1275,7 +1277,7 @@ int_16 duat_9p_stat    (struct duat_9p_io *io, int_32 fid)
     return otag;
 }
 
-int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
+int_16 d9r_clunk   (struct d9r_io *io, int_32 fid) {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
 
@@ -1290,7 +1292,7 @@ int_16 duat_9p_clunk   (struct duat_9p_io *io, int_32 fid) {
     return otag;
 }
 
-int_16 duat_9p_remove  (struct duat_9p_io *io, int_32 fid) {
+int_16 d9r_remove  (struct d9r_io *io, int_32 fid) {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
 
@@ -1305,7 +1307,7 @@ int_16 duat_9p_remove  (struct duat_9p_io *io, int_32 fid) {
     return otag;
 }
 
-int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
+int_16 d9r_open    (struct d9r_io *io, int_32 fid, int_8 mode) {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
 
@@ -1319,7 +1321,7 @@ int_16 duat_9p_open    (struct duat_9p_io *io, int_32 fid, int_8 mode) {
     return otag;
 }
 
-int_16 duat_9p_create  (struct duat_9p_io *io, int_32 fid, char *name,
+int_16 d9r_create  (struct d9r_io *io, int_32 fid, char *name,
                         int_32 perm, int_8 mode)
 {
     int_16 len = 0;
@@ -1346,7 +1348,7 @@ int_16 duat_9p_create  (struct duat_9p_io *io, int_32 fid, char *name,
     return otag;
 }
 
-int_16 duat_9p_read    (struct duat_9p_io *io, int_32 fid, int_64 offset,
+int_16 d9r_read    (struct d9r_io *io, int_32 fid, int_64 offset,
                         int_32 count)
 {
     struct io *out = io->out;
@@ -1365,7 +1367,7 @@ int_16 duat_9p_read    (struct duat_9p_io *io, int_32 fid, int_64 offset,
     return otag;
 }
 
-int_16 duat_9p_write   (struct duat_9p_io *io, int_32 fid, int_64 offset,
+int_16 d9r_write   (struct d9r_io *io, int_32 fid, int_64 offset,
                         int_32 count, int_8 *data)
 {
     struct io *out = io->out;
@@ -1387,8 +1389,8 @@ int_16 duat_9p_write   (struct duat_9p_io *io, int_32 fid, int_64 offset,
     return otag;
 }
 
-int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
-                        int_16 type, int_32 dev, struct duat_9p_qid qid,
+int_16 d9r_wstat   (struct d9r_io *io, int_32 fid,
+                        int_16 type, int_32 dev, struct d9r_qid qid,
                         int_32 mode, int_32 atime, int_32 mtime,
                         int_64 length, char *name, char *uid, char *gid,
                         char *muid, char *ext)
@@ -1397,7 +1399,7 @@ int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
     int_16 otag = find_free_tag (io);
     int_16 s;
     int_8 *bb;
-    int_16 slen = duat_9p_prepare_stat_buffer
+    int_16 slen = d9r_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
              gid, muid, ext);
 
@@ -1415,7 +1417,7 @@ int_16 duat_9p_wstat   (struct duat_9p_io *io, int_32 fid,
     return otag;
 }
 
-int_16 duat_9p_flush   (struct duat_9p_io *io, int_16 oxtag) {
+int_16 d9r_flush   (struct d9r_io *io, int_16 oxtag) {
     struct io *out = io->out;
     int_16 otag = find_free_tag (io);
 
@@ -1431,7 +1433,7 @@ int_16 duat_9p_flush   (struct duat_9p_io *io, int_16 oxtag) {
 
 /* reply messages */
 
-void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, char *version) {
+void d9r_reply_version (struct d9r_io *io, int_16 tag, int_32 msize, char *version) {
     int_16 len = 0;
     int_16 slen;
     struct io *out = io->out;
@@ -1448,7 +1450,7 @@ void duat_9p_reply_version (struct duat_9p_io *io, int_16 tag, int_32 msize, cha
     io_collect (out, version,            len);
 }
 
-void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string,
+void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
                            int_16 errno)
 {
     int_16 len = 0;
@@ -1459,35 +1461,35 @@ void duat_9p_reply_error  (struct duat_9p_io *io, int_16 tag, char *string,
 
     collect_header_reply (io,
                           2 + len +
-                          (io->version == duat_9p_version_9p2000_dot_u) ? 2 : 0,
+                          (io->version == d9r_version_9p2000_dot_u) ? 2 : 0,
                           Rversion, tag);
 
     slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, string,             len);
 
-    if (io->version == duat_9p_version_9p2000_dot_u) {
+    if (io->version == d9r_version_9p2000_dot_u) {
         errno = tolew (errno);
         io_collect (out, (void *)&errno, 2);
     }
 }
 
-void duat_9p_reply_auth   (struct duat_9p_io *io, int_16 tag,
-                           struct duat_9p_qid qid)
+void d9r_reply_auth   (struct d9r_io *io, int_16 tag,
+                           struct d9r_qid qid)
 {
     collect_header_reply (io, 13, Rauth, tag);
     collect_qid (io->out, &qid);
 }
 
-void duat_9p_reply_attach (struct duat_9p_io *io, int_16 tag,
-                           struct duat_9p_qid qid)
+void d9r_reply_attach (struct d9r_io *io, int_16 tag,
+                           struct d9r_qid qid)
 {
     collect_header_reply (io, 13, Rattach, tag);
     collect_qid (io->out, &qid);
 }
 
-void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
-                           struct duat_9p_qid *qid)
+void d9r_reply_walk   (struct d9r_io *io, int_16 tag, int_16 qidc,
+                           struct d9r_qid *qid)
 {
     struct io *out = io->out;
     int_16 i;
@@ -1501,15 +1503,15 @@ void duat_9p_reply_walk   (struct duat_9p_io *io, int_16 tag, int_16 qidc,
     }
 }
 
-void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
-                           int_32 dev, struct duat_9p_qid qid, int_32 mode,
+void d9r_reply_stat   (struct d9r_io *io, int_16 tag, int_16 type,
+                           int_32 dev, struct d9r_qid qid, int_32 mode,
                            int_32 atime, int_32 mtime, int_64 length,
                            char *name, char *uid, char *gid, char *muid,
                            char *ext)
 {
     struct io *out = io->out;
     int_8 *bb;
-    int_16 slen = duat_9p_prepare_stat_buffer
+    int_16 slen = d9r_prepare_stat_buffer
             (io, &bb, type, dev, &qid, mode, atime, mtime, length, name, uid,
              gid, muid, ext);
 
@@ -1522,16 +1524,16 @@ void duat_9p_reply_stat   (struct duat_9p_io *io, int_16 tag, int_16 type,
     afree (slen, bb);
 }
 
-void duat_9p_reply_clunk   (struct duat_9p_io *io, int_16 tag) {
+void d9r_reply_clunk   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rclunk, tag);
 }
 
-void duat_9p_reply_remove  (struct duat_9p_io *io, int_16 tag) {
+void d9r_reply_remove  (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rremove, tag);
 }
 
-void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
-                           struct duat_9p_qid qid, int_32 iounit)
+void d9r_reply_open   (struct d9r_io *io, int_16 tag,
+                           struct d9r_qid qid, int_32 iounit)
 {
     struct io *out = io->out;
     collect_header_reply (io, 13 + 4, Ropen, tag);
@@ -1541,8 +1543,8 @@ void duat_9p_reply_open   (struct duat_9p_io *io, int_16 tag,
     io_collect (out, (void *)&iounit,    4);
 }
 
-void duat_9p_reply_create (struct duat_9p_io *io, int_16 tag,
-                           struct duat_9p_qid qid, int_32 iounit)
+void d9r_reply_create (struct d9r_io *io, int_16 tag,
+                           struct d9r_qid qid, int_32 iounit)
 {
     struct io *out = io->out;
 
@@ -1553,7 +1555,7 @@ void duat_9p_reply_create (struct duat_9p_io *io, int_16 tag,
     io_collect (out, (void *)&iounit,    4);
 }
 
-void duat_9p_reply_read   (struct duat_9p_io *io, int_16 tag, int_32 count,
+void d9r_reply_read   (struct d9r_io *io, int_16 tag, int_32 count,
                            int_8 *data)
 {
     struct io *out = io->out;
@@ -1565,56 +1567,56 @@ void duat_9p_reply_read   (struct duat_9p_io *io, int_16 tag, int_32 count,
     io_collect (out, (void *)data,       count);
 }
 
-void duat_9p_reply_write   (struct duat_9p_io *io, int_16 tag, int_32 count) {
+void d9r_reply_write   (struct d9r_io *io, int_16 tag, int_32 count) {
     collect_header_reply (io, 4, Rwrite, tag);
 
     count       = tolel (count);
     io_collect (io->out, (void *)&count,     4);
 }
 
-void duat_9p_reply_wstat   (struct duat_9p_io *io, int_16 tag) {
+void d9r_reply_wstat   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rwstat, tag);
 }
 
-void duat_9p_reply_flush   (struct duat_9p_io *io, int_16 tag) {
+void d9r_reply_flush   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rflush, tag);
 }
 
 /* user/group maps */
 
-static struct tree duat_9p_user_map = TREE_INITIALISER;
-static struct tree duat_9p_group_map = TREE_INITIALISER;
+static struct tree d9r_user_map = TREE_INITIALISER;
+static struct tree d9r_group_map = TREE_INITIALISER;
 
-void   duat_9p_update_user  (char *user, int_32 id) {
-    struct tree_node *node = tree_get_node_string (&duat_9p_user_map, user);
+void   d9r_update_user  (char *user, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&d9r_user_map, user);
     if (node != (struct tree_node *)0) {
         node_get_value(node) = (void *)(int_pointer)id;
     } else {
-        tree_add_node_string_value(&duat_9p_user_map, user,
+        tree_add_node_string_value(&d9r_user_map, user,
                                     (void *)(int_pointer)id);
     }
 }
 
-void   duat_9p_update_group (char *group, int_32 id) {
-    struct tree_node *node = tree_get_node_string (&duat_9p_group_map, group);
+void   d9r_update_group (char *group, int_32 id) {
+    struct tree_node *node = tree_get_node_string (&d9r_group_map, group);
     if (node != (struct tree_node *)0) {
         node_get_value(node) = (void *)(int_pointer)id;
     } else {
-        tree_add_node_string_value(&duat_9p_group_map, group,
+        tree_add_node_string_value(&d9r_group_map, group,
                                     (void *)(int_pointer)id);
     }
 }
 
-int_32 duat_9p_get_user     (char *user) {
-    struct tree_node *node = tree_get_node_string (&duat_9p_user_map, user);
+int_32 d9r_get_user     (char *user) {
+    struct tree_node *node = tree_get_node_string (&d9r_user_map, user);
     if (node != (struct tree_node *)0) {
         return (int_32)(int_pointer)node_get_value(node);
     }
     return (int_32)0;
 }
 
-int_32 duat_9p_get_group    (char *group) {
-    struct tree_node *node = tree_get_node_string (&duat_9p_group_map, group);
+int_32 d9r_get_group    (char *group) {
+    struct tree_node *node = tree_get_node_string (&d9r_group_map, group);
     if (node != (struct tree_node *)0) {
         return (int_32)(int_pointer)node_get_value(node);
     }
