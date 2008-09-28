@@ -238,7 +238,7 @@ if not env['skipPkgConfig']:
   env.Append(LINKFLAGS = subprocess.Popen(['pkg-config', '--libs', 'libcurie'], stdout=subprocess.PIPE).communicate()[0],
              CFLAGS = subprocess.Popen(['pkg-config', '--cflags', 'libcurie'], stdout=subprocess.PIPE).communicate()[0])
 
-env.Append (LIBS = ['curie', 'duat'])
+env.Append (LIBS = ['duat', 'curie'])
 
 # adjust linker/compiler flags in pkgconfig file
 

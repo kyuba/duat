@@ -38,17 +38,16 @@
 
 #include <curie/tree.h>
 #include <curie/memory.h>
+#include <curie/immutable.h>
 #include <duat/filesystem.h>
-
 
 struct dfs *dfs_create () {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs));
-    static char *rootdesc[1] = { "/" };
     struct dfs *rv = get_pool_mem (&pool);
 
     if (rv == (struct dfs *)0) return (struct dfs *)0;
 
-    rv->root = dfs_mk_directory(rv, 1, rootdesc);
+    (void)dfs_mk_directory(rv, 0, (char **)0);
     if (rv->root == (struct dfs_directory *)0) {
         free_pool_mem (rv);
         return (struct dfs *)0;
@@ -59,6 +58,7 @@ struct dfs *dfs_create () {
 
 static void initialise_dfs_node_common (struct dfs_node_common *c)
 {
+    c->mode = 0644;
     c->atime = 0;
     c->mtime = 0;
     c->length = 0;
@@ -70,9 +70,37 @@ static void initialise_dfs_node_common (struct dfs_node_common *c)
 struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **path)
 {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
-    struct dfs_directory *rv = get_pool_mem (&pool);
+    struct dfs_directory *rv, *parent = (struct dfs_directory *)0;
 
-    if (rv == (struct dfs_directory *)0) return (struct dfs_directory *)0;
+    if (pcount > 0) {
+        struct dfs_directory *node = fs->root,
+                             *pnode = node;
+        int_16 i = 0;
+
+        while ((node != (struct dfs_directory *)0) &&
+               (i < pcount))
+        {
+            struct tree_node *n = tree_get_node_string (node->nodes, path[i]);
+            if (n == (struct tree_node *)0)
+                break;
+
+            pnode = node;
+            node = node_get_value (n);
+            i++;
+        }
+
+        if (i == pcount) {
+            return node;
+        } else if (i == (pcount - 1)) {
+            parent = pnode;
+        } else {
+            return (struct dfs_directory *)0;
+        }
+    }
+
+    if ((rv = get_pool_mem (&pool)) == (struct dfs_directory *)0) {
+        return (struct dfs_directory *)0;
+    }
 
     rv->nodes = tree_create();
     if (rv->nodes == (struct tree *)0)
@@ -83,6 +111,21 @@ struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **pa
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_directory;
+    rv->c.mode = 0755;
+
+    if (pcount == 0)
+    {
+        rv->c.name = "/";
+        fs->root = rv;
+        return rv;
+    } else {
+        rv->c.name = (char *)str_immutable_unaligned(path[pcount - 1]);
+        if (parent != (struct dfs_directory *)0)
+        {
+            tree_add_node_string_value (parent->nodes, path[pcount - 1],
+                                        (void *)rv);
+        }
+    }
 
     return rv;
 }
@@ -96,6 +139,10 @@ struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_file;
+    rv->c.name = (char *)str_immutable_unaligned(name);
+
+    rv->data = tbuffer;
+    rv->c.length = tlength;
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
@@ -111,6 +158,7 @@ struct dfs_symlink *dfs_mk_symlink (struct dfs_directory *dir, char *name, char 
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_symlink;
+    rv->c.name = (char *)str_immutable_unaligned(name);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
@@ -126,6 +174,7 @@ struct dfs_device *dfs_mk_device (struct dfs_directory *dir, char *name, int_16 
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_device;
+    rv->c.name = (char *)str_immutable_unaligned(name);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
@@ -141,6 +190,7 @@ struct dfs_socket *dfs_mk_socket (struct dfs_directory *dir, char *name)
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_socket;
+    rv->c.name = (char *)str_immutable_unaligned(name);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 

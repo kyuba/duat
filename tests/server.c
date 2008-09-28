@@ -37,133 +37,11 @@
  */
 
 #include <curie/multiplex.h>
-#include <curie/network.h>
-
-#include <duat/9p.h>
-#include <duat/filesystem.h>
-
-#include <curie/main.h>
 #include <curie/memory.h>
+#include <curie/main.h>
 
-static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
-                     char *uname, char *aname)
-{
-    struct d9r_qid qid = { 0, 0, 0 };
-
-    d9r_reply_attach (io, tag, qid);
-}
-
-static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
-                   int_16 c, char **names)
-{
-    struct d9r_qid qid[c];
-    int_16 i = 0;
-
-    while (i < c) {
-        qid[i].type    = 0;
-        qid[i].version = 0;
-        qid[i].path    = 0;
-        i++;
-    }
-
-    d9r_reply_walk (io, tag, c, qid);
-}
-
-static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
-{
-    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
-
-    if (md->path_count == 0) {
-        struct d9r_qid qid = { QTDIR, 1, 2 };
-
-        d9r_reply_stat (io, tag, 1, 1, qid,
-                            DMDIR | DMUREAD | DMOREAD | DMGREAD,
-                            1, 1, 2,
-                            "/", "nyu", "kittens", "nyu", (char *)0);
-    } else {
-        struct d9r_qid qid = { 0, 1, 2 };
-
-        d9r_reply_stat (io, tag, 1, 1, qid,
-                            DMUREAD | DMOREAD | DMGREAD,
-                            1, 1, 800,
-                            "nyoron", "nyu", "kittens", "nyu", (char *)0);
-    }
-}
-
-static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
-{
-    struct d9r_qid qid = { 0, 1, 2 };
-
-    d9r_reply_open (io, tag, qid, 0x1000);
-}
-
-static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
-{
-    struct d9r_qid qid = { 0, 1, 2 };
-
-    d9r_reply_create (io, tag, qid, 0x1000);
-}
-
-static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 length)
-{
-    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
-
-    if (md->path_count == 0) {
-        struct d9r_qid qid = { 0, 1, 2 };
-        int_8 *bb;
-        int_16 slen = 0;
-
-        if (md->index == 0) {
-            slen = d9r_prepare_stat_buffer
-                    (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
-                     1, 1, 6, "nyoron", "nyu", "kittens", "nyu", (char *)0);
-            d9r_reply_read (io, tag, slen, bb);
-            afree (slen, bb);
-        } else if (md->index == 1) {
-            slen = d9r_prepare_stat_buffer
-                    (io, &bb, 1, 1, &qid, DMUREAD | DMOREAD | DMGREAD,
-                     1, 1, 6, "nyoronZ", "nyu", "kittens", "nyu", (char *)0);
-            d9r_reply_read (io, tag, slen, bb);
-            afree (slen, bb);
-        } else {
-            d9r_reply_read (io, tag, 0, (int_8 *)0);
-        }
-        (md->index)++;
-    } else {
-        if (offset == 0) {
-            d9r_reply_read (io, tag, 6, (int_8 *)"meow!\n");
-        } else {
-            d9r_reply_read (io, tag, 0, (int_8 *)0);
-        }
-    }
-}
-
-static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
-{
-    char dd[count + 1];
-    int i;
-
-    for (i = 0; i < count; i++) {
-        dd[i] = (char)data[i];
-    }
-    dd[i] = 0;
-
-    d9r_reply_write (io, tag, count);
-}
-
-void on_connect(struct io *in, struct io *out, void *p) {
-    struct d9r_io *io = d9r_open_io (in, out);
-
-    io->Tattach = Tattach;
-    io->Twalk   = Twalk;
-    io->Tstat   = Tstat;
-    io->Topen   = Topen;
-    io->Tcreate = Tcreate;
-    io->Tread   = Tread;
-    io->Twrite  = Twrite;
-
-    multiplex_add_d9r (io, (void *)0);
-}
+#include <duat/9p-server.h>
+#include <duat/filesystem.h>
 
 static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
 {
@@ -178,15 +56,30 @@ static void *gm_recover(unsigned long int s)
 }
 
 int a_main(void) {
+    static char *dirn[1] = { "nyoron" };
+    struct dfs *fs;
+
     set_resize_mem_recovery_function(rm_recover);
     set_get_mem_recovery_function(gm_recover);
 
     dfs_update_user  ("nyu",     1000);
     dfs_update_group ("kittens", 100);
 
-    multiplex_network();
-    multiplex_d9r();
-    multiplex_add_socket ("./test-socket-9p", on_connect, (void *)0);
+    multiplex_d9s();
+
+    fs = dfs_create ();
+
+    dfs_mk_file (dfs_mk_directory (fs, 1, (char **)dirn),
+                 "nyu", (char *)0, (int_8 *)"meow!\n", (int_64)6,
+                 (void *)0, (void *)0);
+    dfs_mk_file (fs->root,
+                 "blah", (char *)0, (int_8 *)"meow!\n", (int_64)6,
+                 (void *)0, (void *)0);
+    dfs_mk_file (fs->root,
+                 "blubb", (char *)0, (int_8 *)"meow!\n", (int_64)6,
+                 (void *)0, (void *)0);
+
+    multiplex_add_d9s_socket ("./test-socket-9p", fs);
 
     while (multiplex() != mx_nothing_to_do);
 

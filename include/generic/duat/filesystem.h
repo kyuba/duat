@@ -45,6 +45,18 @@ extern "C" {
 
 #include <curie/int.h>
 
+#define DFSSETUID    ((int_32)0x00080000)
+#define DFSSETGID    ((int_32)0x00040000)
+#define DFSUREAD     ((int_32)0x00000100)
+#define DFSUWRITE    ((int_32)0x00000080)
+#define DFSUEXEC     ((int_32)0x00000040)
+#define DFSGREAD     ((int_32)0x00000020)
+#define DFSGWRITE    ((int_32)0x00000010)
+#define DFSGEXEC     ((int_32)0x00000008)
+#define DFSOREAD     ((int_32)0x00000004)
+#define DFSOWRITE    ((int_32)0x00000002)
+#define DFSOEXEC     ((int_32)0x00000001)
+
 struct dfs_node_common {
     enum {
         dft_directory,
@@ -53,6 +65,7 @@ struct dfs_node_common {
         dft_device,
         dft_socket
     } type;
+    int_32 mode;
     int_32 atime;
     int_32 mtime;
     int_64 length;
