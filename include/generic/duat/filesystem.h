@@ -64,7 +64,7 @@ struct dfs_node_common {
 
 struct dfs_directory {
     struct dfs_node_common c;
-    struct tree nodes;
+    struct tree *nodes;
 };
 
 struct dfs_file {
@@ -91,21 +91,21 @@ struct dfs_socket {
 };
 
 struct dfs {
-    struct dfs_directory root;
+    struct dfs_directory *root;
 };
 
 struct dfs *dfs_create ();
 struct dfs_directory *dfs_mk_directory
         (struct dfs *, int_16, char **);
 struct dfs_file *dfs_mk_file
-        (struct dfs_directory *, char *, int_8 *, int_64, void *,
+        (struct dfs_directory *, char *, char *, int_8 *, int_64, void *,
          int_32 (*)(int_64, int_32, int_8 *, void *));
 struct dfs_symlink *dfs_mk_symlink
-        (struct dfs_directory *, char *);
+        (struct dfs_directory *, char *, char *);
 struct dfs_device *dfs_mk_device
-        (struct dfs_directory *, int_16, int_16);
+        (struct dfs_directory *, char *, int_16, int_16);
 struct dfs_socket *dfs_mk_socket
-        (struct dfs_directory *);
+        (struct dfs_directory *, char *);
 
 /*! \brief Set a User's UID
  *  \param[in] user The user whose ID to update.

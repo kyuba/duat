@@ -37,7 +37,59 @@
  */
 
 #include <curie/tree.h>
+#include <curie/memory.h>
 #include <duat/filesystem.h>
+
+
+struct dfs *dfs_create () {
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs));
+    static char *rootdesc[1] = { "/" };
+    struct dfs *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs *)0) return (struct dfs *)0;
+
+    rv->root = dfs_mk_directory(rv, 1, rootdesc);
+    if (rv->root == (struct dfs_directory *)0) {
+        free_pool_mem (rv);
+        return (struct dfs *)0;
+    }
+
+    return rv;
+}
+
+static void initialise_dfs_node_common (struct dfs_node_common *c)
+{
+    c->atime = 0;
+    c->mtime = 0;
+    c->length = 0;
+    c->uid = "anonymous";
+    c->gid = "freeman";
+    c->muid = "anonymous";
+}
+
+struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **path)
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
+    struct dfs_directory *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_directory *)0) return (struct dfs_directory *)0;
+
+    rv->nodes = tree_create();
+    if (rv->nodes == (struct tree *)0)
+    {
+        free_pool_mem (rv);
+        return (struct dfs_directory *)0;
+    }
+
+    initialise_dfs_node_common(&(rv->c));
+
+    return rv;
+}
+
+struct dfs_file *dfs_mk_file (struct dfs_directory *, char *, char *, int_8 *, int_64, void *, int_32 (*)(int_64, int_32, int_8 *, void *));
+struct dfs_symlink *dfs_mk_symlink (struct dfs_directory *, char *, char *);
+struct dfs_device *dfs_mk_device (struct dfs_directory *, char *, int_16, int_16);
+struct dfs_socket *dfs_mk_socket (struct dfs_directory *, char *);
 
 /* user/group maps */
 
