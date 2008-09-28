@@ -44,7 +44,14 @@
 static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
 {
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
+    struct dfs *fs = (struct dfs *)io->aux;
     struct d9r_qid qid = { 0, 1, (int_64)io->aux };
+
+    if (md != (struct d9r_fid_metadata *)0)
+    {
+        md->aux = fs->root;
+    }
 
     d9r_reply_attach (io, tag, qid);
 }
@@ -53,9 +60,18 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                    int_16 c, char **names)
 {
     struct dfs *fs = io->aux;
-    struct dfs_directory *d = fs->root;
     struct d9r_qid qid[c];
-    struct d9r_fid_metadata *md;
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
+    struct dfs_directory *d;
+
+    if (md != (struct d9r_fid_metadata *)0)
+    {
+        d = md->aux;
+    }
+    else
+    {
+        d = fs->root;
+    }
 
     int_16 i = 0;
 
@@ -66,14 +82,12 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 
             if (node == (struct tree_node *)0)
             {
-                d9r_reply_error (io, tag, "Invalid path.", P9_EDONTCARE);
-                return;
+                break;
             }
 
             if ((d = node_get_value(node)) == (struct dfs_directory *)0)
             {
-                d9r_reply_error (io, tag, "Internal error.", P9_EDONTCARE);
-                return;
+                break;
             }
 
             qid[i].type    = 0;
@@ -82,15 +96,23 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 
             i++;
         } else {
-            d9r_reply_error (io, tag, "Bad path element.", P9_EDONTCARE);
-            return;
+            break;
         }
     }
 
-    md = d9r_fid_metadata (io, afid);
-    md->aux = d;
+    if ((i == 0) && (c != 0))
+    {
+        d9r_reply_error (io, tag, "Bad path element.", P9_EDONTCARE);
+        return;
+    }
 
-    d9r_reply_walk (io, tag, c, qid);
+    if (i == c)
+    {
+        md = d9r_fid_metadata (io, afid);
+        md->aux = d;
+    }
+
+    d9r_reply_walk (io, tag, i, qid);
 }
 
 static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
@@ -126,7 +148,21 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
 
 static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
 {
-    struct d9r_qid qid = { 0, 1, 2 };
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
+    struct dfs_node_common *c = md->aux;
+    struct d9r_qid qid = { 0, 1, (int_64)c };
+
+    switch (c->type)
+    {
+        case dft_directory:
+            qid.type = QTDIR;
+            break;
+        case dft_symlink:
+            qid.type = QTLINK;
+            break;
+        default:
+            break;
+    }
 
     d9r_reply_open (io, tag, qid, 0x1000);
 }

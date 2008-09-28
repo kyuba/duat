@@ -1462,8 +1462,8 @@ void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
 
     collect_header_reply (io,
                           2 + len +
-                          (io->version == d9r_version_9p2000_dot_u) ? 2 : 0,
-                          Rversion, tag);
+                          ((io->version == d9r_version_9p2000_dot_u) ? 2 : 0),
+                          Rerror, tag);
 
     slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
