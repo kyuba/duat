@@ -52,7 +52,7 @@ struct dfs_node_common {
         dft_symlink,
         dft_device,
         dft_socket
-    } filetype;
+    } type;
     int_32 atime;
     int_32 mtime;
     int_64 length;

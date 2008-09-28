@@ -82,14 +82,70 @@ struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **pa
     }
 
     initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_directory;
 
     return rv;
 }
 
-struct dfs_file *dfs_mk_file (struct dfs_directory *, char *, char *, int_8 *, int_64, void *, int_32 (*)(int_64, int_32, int_8 *, void *));
-struct dfs_symlink *dfs_mk_symlink (struct dfs_directory *, char *, char *);
-struct dfs_device *dfs_mk_device (struct dfs_directory *, char *, int_16, int_16);
-struct dfs_socket *dfs_mk_socket (struct dfs_directory *, char *);
+struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile, int_8 *tbuffer, int_64 tlength, void *aux, int_32 (*on_write)(int_64, int_32, int_8 *, void *))
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_file));
+    struct dfs_file *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_file *)0) return (struct dfs_file *)0;
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_file;
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
+
+struct dfs_symlink *dfs_mk_symlink (struct dfs_directory *dir, char *name, char *linkcontent)
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_symlink));
+    struct dfs_symlink *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_symlink *)0) return (struct dfs_symlink *)0;
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_symlink;
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
+
+struct dfs_device *dfs_mk_device (struct dfs_directory *dir, char *name, int_16 majour, int_16 minor)
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_device));
+    struct dfs_device *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_device *)0) return (struct dfs_device *)0;
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_device;
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
+
+struct dfs_socket *dfs_mk_socket (struct dfs_directory *dir, char *name)
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_socket));
+    struct dfs_socket *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_socket *)0) return (struct dfs_socket *)0;
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_socket;
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
 
 /* user/group maps */
 
