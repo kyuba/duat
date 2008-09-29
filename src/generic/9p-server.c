@@ -169,7 +169,31 @@ static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
 
 static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
 {
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
+    struct dfs_node_common *c = md->aux;
+    struct dfs_directory *d;
     struct d9r_qid qid = { 0, 1, 2 };
+
+    if (c->type != dft_directory)
+    {
+        d9r_reply_error (io, tag,
+                         "Cannot create nodes under anything but a directory.",
+                         P9_EDONTCARE);
+        return;
+    }
+
+    d = (struct dfs_directory *)c;
+
+    if (perm & DMDIR)
+    {
+        qid.type = QTDIR;
+        qid.path = (int_64)dfs_mk_directory(d, name);
+    }
+    else
+    {
+        qid.path = (int_64)dfs_mk_file
+                (d, name, (char *)0, (int_8 *)0, 0, (void *)0, (void *)0, (void *)0);
+    }
 
     d9r_reply_create (io, tag, qid, 0x1000);
 }

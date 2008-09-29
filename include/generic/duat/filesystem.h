@@ -85,7 +85,8 @@ struct dfs_file {
     char *path;
     int_8 *data;
     void *aux;
-    int_32 (*on_write)(struct dfs_file*, int_64, int_32, int_8 *);
+    void (*on_read)(struct dfs_file *, int_64, int_32, int_16);
+    int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *);
 };
 
 struct dfs_symlink {
@@ -108,11 +109,14 @@ struct dfs {
 };
 
 struct dfs *dfs_create ();
-struct dfs_directory *dfs_mk_directory
+struct dfs_directory *dfs_mk_directory_r
         (struct dfs *, int_16, char **);
+struct dfs_directory *dfs_mk_directory
+        (struct dfs_directory *, char *);
 struct dfs_file *dfs_mk_file
         (struct dfs_directory *, char *, char *, int_8 *, int_64, void *,
-         int_32 (*)(int_64, int_32, int_8 *, void *));
+         void (*)(struct dfs_file*, int_64, int_32, int_16),
+         int_32 (*)(struct dfs_file*, int_64, int_32, int_8 *));
 struct dfs_symlink *dfs_mk_symlink
         (struct dfs_directory *, char *, char *);
 struct dfs_device *dfs_mk_device

@@ -69,15 +69,15 @@ int a_main(void) {
 
     fs = dfs_create ();
 
-    dfs_mk_file (dfs_mk_directory (fs, 1, (char **)dirn),
+    dfs_mk_file (dfs_mk_directory_r (fs, 1, (char **)dirn),
                  "nyu", (char *)0, (int_8 *)"meow!\n", (int_64)6,
-                 (void *)0, (void *)0);
+                 (void *)0, (void *)0, (void *)0);
     dfs_mk_file (fs->root,
                  "blah", (char *)0, (int_8 *)"meow!\n", (int_64)6,
-                 (void *)0, (void *)0);
+                 (void *)0, (void *)0, (void *)0);
     dfs_mk_file (fs->root,
                  "blubb", (char *)0, (int_8 *)"meow!\n", (int_64)6,
-                 (void *)0, (void *)0);
+                 (void *)0, (void *)0, (void *)0);
 
     multiplex_add_d9s_socket ("./test-socket-9p", fs);
 

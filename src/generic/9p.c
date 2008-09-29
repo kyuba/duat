@@ -41,6 +41,24 @@
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 
+#include <curie/sexpr.h>
+void debug (char *string)
+{
+    static struct sexpr_io *io = (struct sexpr_io *)0;
+
+    if (io == (struct sexpr_io *)0)
+    {
+        io = sx_open_stdio();
+    }
+
+    if (io != (struct sexpr_io *)0)
+    {
+        struct sexpr *sx = make_string(string);
+        sx_write (io, sx);
+        sx_destroy (sx);
+    }
+}
+
 static unsigned int pop_message (unsigned char *, int_32, struct d9r_io *,
                                  void *);
 
@@ -631,6 +649,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     switch (code) {
         case Tversion:
+            debug ("Tversion");
             if (length > 13)
             {
                 char *versionstring;
@@ -703,6 +722,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tauth:
+            debug ("Tauth");
             if (io->Tauth == (void *)0) break;
 
             if (length >= 15) {
@@ -738,6 +758,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tattach:
+            debug ("Tattach");
             if (io->Tattach == (void *)0) break;
 
             if (length >= 19) {
@@ -794,6 +815,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tflush:
+            debug ("Tflush");
             if (length >= 9) {
                 int_16 otag = popw (b + 7);
 
@@ -815,6 +837,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Twalk:
+            debug ("Twalk");
             if (io->Twalk == (void *)0) break;
 
             if (length >= 17) {
@@ -833,6 +856,10 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                         d9r_reply_error (io, tag, "Malformed message.",
                                              P9_EDONTCARE);
                         return length;
+                    }
+                    else
+                    {
+                        debug (names[namei]);
                     }
                 }
 
@@ -872,6 +899,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Topen:
+            debug ("Topen");
             if (io->Topen == (void *)0) break;
 
             if (length >= 10) {
@@ -899,6 +927,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tcreate:
+            debug ("Tcreate");
             if (io->Tcreate == (void *)0) break;
 
             if (length >= 18) {
@@ -937,6 +966,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tread:
+            debug ("Tread");
             if (io->Tread == (void *)0) break;
 
             if (length >= 23) {
@@ -963,6 +993,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Twrite:
+            debug ("Twrite");
             if (io->Twrite == (void *)0) break;
 
             if (length >= 23) {
@@ -989,6 +1020,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tclunk:
+            debug ("Tclunk");
             if (length >= 11) {
                 int_32 fid = popl (b + 7);
 
@@ -1015,6 +1047,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tremove:
+            debug ("Tremove");
             if (length >= 11) {
                 int_32 fid = popl (b + 7);
 
@@ -1041,6 +1074,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Tstat:
+            debug ("Tstat");
             if (io->Tstat == (void *)0) break;
 
             if (length >= 11) {
@@ -1073,6 +1107,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             return length;
 
         case Twstat:
+            debug ("Twstat");
             if (io->Twstat == (void *)0) break;
 
             if (length >= 49) {

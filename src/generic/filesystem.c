@@ -47,7 +47,7 @@ struct dfs *dfs_create () {
 
     if (rv == (struct dfs *)0) return (struct dfs *)0;
 
-    (void)dfs_mk_directory(rv, 0, (char **)0);
+    (void)dfs_mk_directory_r(rv, 0, (char **)0);
     if (rv->root == (struct dfs_directory *)0) {
         free_pool_mem (rv);
         return (struct dfs *)0;
@@ -67,9 +67,10 @@ static void initialise_dfs_node_common (struct dfs_node_common *c)
     c->muid = "anonymous";
 }
 
-struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **path)
+static struct memory_pool directory_pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
+
+struct dfs_directory *dfs_mk_directory_r (struct dfs *fs, int_16 pcount, char **path)
 {
-    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
     struct dfs_directory *rv, *parent = (struct dfs_directory *)0;
 
     if (pcount > 0) {
@@ -98,7 +99,7 @@ struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **pa
         }
     }
 
-    if ((rv = get_pool_mem (&pool)) == (struct dfs_directory *)0) {
+    if ((rv = get_pool_mem (&directory_pool)) == (struct dfs_directory *)0) {
         return (struct dfs_directory *)0;
     }
 
@@ -130,7 +131,30 @@ struct dfs_directory *dfs_mk_directory (struct dfs *fs, int_16 pcount, char **pa
     return rv;
 }
 
-struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile, int_8 *tbuffer, int_64 tlength, void *aux, int_32 (*on_write)(int_64, int_32, int_8 *, void *))
+struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)
+{
+    struct dfs_directory *rv = get_pool_mem (&directory_pool);
+
+    if (rv == (struct dfs_directory *)0) return (struct dfs_directory *)0;
+
+    rv->nodes = tree_create();
+    if (rv->nodes == (struct tree *)0)
+    {
+        free_pool_mem (rv);
+        return (struct dfs_directory *)0;
+    }
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.type = dft_directory;
+    rv->c.name = (char *)str_immutable_unaligned(name);
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
+
+
+struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile, int_8 *tbuffer, int_64 tlength, void *aux, void (*on_read)(struct dfs_file *, int_64, int_32, int_16), int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *))
 {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_file));
     struct dfs_file *rv = get_pool_mem (&pool);
@@ -143,6 +167,8 @@ struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile
 
     rv->data = tbuffer;
     rv->c.length = tlength;
+    rv->on_read = on_read;
+    rv->on_write = on_write;
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
