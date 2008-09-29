@@ -100,7 +100,7 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
         }
     }
 
-    if ((i == 0) && (c != 0))
+    if ((i == 0) && (c > 1))
     {
         d9r_reply_error (io, tag, "Bad path element.", P9_EDONTCARE);
         return;

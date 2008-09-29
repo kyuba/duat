@@ -941,7 +941,10 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 name = pop_string(b, &i, length);
                 if (name == (char *)0) break;
 
-                if ((i + 5) < length) break;
+                debug (name);
+
+                if (length < (i + 5)) break;
+
                 perm = popl (b + i);
                 mode = b[i + 4];
 
@@ -1508,6 +1511,8 @@ void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
         errno = tolew (errno);
         io_collect (out, (void *)&errno, 2);
     }
+
+    debug (string);
 }
 
 void d9r_reply_auth   (struct d9r_io *io, int_16 tag,
