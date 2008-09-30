@@ -94,8 +94,14 @@ struct dfs_symlink {
     char *symlink;
 };
 
+enum dfs_device_type {
+    dfs_character_device,
+    dfs_block_device
+};
+
 struct dfs_device {
     struct dfs_node_common c;
+    enum dfs_device_type type;
     int_16 majour;
     int_16 minor;
 };
@@ -120,7 +126,7 @@ struct dfs_file *dfs_mk_file
 struct dfs_symlink *dfs_mk_symlink
         (struct dfs_directory *, char *, char *);
 struct dfs_device *dfs_mk_device
-        (struct dfs_directory *, char *, int_16, int_16);
+        (struct dfs_directory *, char *, enum dfs_device_type, int_16, int_16);
 struct dfs_socket *dfs_mk_socket
         (struct dfs_directory *, char *);
 

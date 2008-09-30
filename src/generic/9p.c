@@ -931,7 +931,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (io->Tcreate == (void *)0) break;
 
             if (length >= 18) {
-                char *name;
+                char *name, *ext = (char *)0;
                 int_32 perm;
                 int_8  mode;
 
@@ -948,7 +948,14 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 perm = popl (b + i);
                 mode = b[i + 4];
 
-                io->Tcreate(io, tag, fid, name, perm, mode);
+                i += 5;
+
+                if (length > (i + 2))
+                {
+                    ext = pop_string(b, &i, length);
+                }
+
+                io->Tcreate(io, tag, fid, name, perm, mode, ext);
                 return length;
             }
             break;
@@ -1361,19 +1368,24 @@ int_16 d9r_open    (struct d9r_io *io, int_32 fid, int_8 mode) {
 }
 
 int_16 d9r_create  (struct d9r_io *io, int_32 fid, char *name,
-                        int_32 perm, int_8 mode)
+                        int_32 perm, int_8 mode, char *ext)
 {
-    int_16 len = 0;
+    int_16 len = 0, extlen = 0;
     int_16 otag = find_free_tag (io);
     struct io *out = io->out;
     int_16 slen;
 
-    while (name[len]) name++;
+    while (name[len]) len++;
+    if ((io->version == d9r_version_9p2000_dot_u) &&
+        (ext != (char *)0))
+    {
+        while (ext[extlen]) len++;
+    }
 
     fid         = tolel (fid);
     perm        = tolel (fid);
 
-    collect_header (out, 4 + 2 + len + 4 + 1, Tcreate, otag);
+    collect_header (out, 4 + 2 + len + 4 + 1 + ((io->version == d9r_version_9p2000_dot_u) ? 2 + extlen : 0), Tcreate, otag);
 
     io_collect (out, (void *)&fid,       4);
 
@@ -1383,6 +1395,13 @@ int_16 d9r_create  (struct d9r_io *io, int_32 fid, char *name,
 
     io_collect (out, (void *)&perm,      4);
     io_collect (out, (void *)&mode,      1);
+
+    if (io->version == d9r_version_9p2000_dot_u)
+    {
+        slen        = tolew (extlen);
+        io_collect (out, (void *)&slen,      2);
+        io_collect (out, (void *)&ext,       extlen);
+    }
 
     return otag;
 }

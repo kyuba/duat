@@ -247,7 +247,7 @@ struct d9r_io {
     /*! \brief Callback for an incoming Topen Message */
     void (*Topen)   (struct d9r_io *, int_16, int_32, int_8);
     /*! \brief Callback for an incoming Tcreate Message */
-    void (*Tcreate) (struct d9r_io *, int_16, int_32, char *, int_32, int_8);
+    void (*Tcreate) (struct d9r_io *, int_16, int_32, char *, int_32, int_8, char *);
     /*! \brief Callback for an incoming Tread Message */
     void (*Tread)   (struct d9r_io *, int_16, int_32, int_64, int_32);
     /*! \brief Callback for an incoming Twrite Message */
@@ -365,7 +365,7 @@ int_16 d9r_walk    (struct d9r_io *, int_32, int_32, int_16, char **);
 int_16 d9r_open    (struct d9r_io *, int_32, int_8);
 /*! \brief Send a Tcreate Message
  *  \return The tag the request was sent with. */
-int_16 d9r_create  (struct d9r_io *, int_32, char *, int_32, int_8);
+int_16 d9r_create  (struct d9r_io *, int_32, char *, int_32, int_8, char *);
 /*! \brief Send a Tread Message
  *  \return The tag the request was sent with. */
 int_16 d9r_read    (struct d9r_io *, int_32, int_64, int_32);

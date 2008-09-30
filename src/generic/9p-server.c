@@ -41,6 +41,8 @@
 #include <curie/network.h>
 #include <curie/memory.h>
 
+void debug(char *);
+
 static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
 {
@@ -121,6 +123,8 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
     struct dfs_node_common *c = md->aux;
     struct d9r_qid qid = { 0, 1, (int_64)c };
     int_32 modex = 0;
+    char *ex = (char *)0;
+    char devbuffer[10];
 
     switch (c->type)
     {
@@ -131,9 +135,73 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
         case dft_symlink:
             qid.type = QTLINK;
             modex = DMSYMLINK;
+            {
+                struct dfs_symlink *link = (struct dfs_symlink *)c;
+                ex = link->symlink;
+            }
             break;
         case dft_device:
             modex = DMDEVICE;
+            ex = devbuffer;
+
+            {
+                struct dfs_device *dev = (struct dfs_device *)c;
+                int_16 i = 2, tc = 0;
+
+                devbuffer[0] = (dev->type == dfs_block_device) ? 'b' : 'c';
+                devbuffer[1] = ' ';
+
+                if (dev->majour == 0)
+                {
+                    devbuffer[i] = '0';
+                    i++;
+                }
+                else
+                {
+                    int_16 m = dev->majour, xi = i-1;
+                    if (m >= 100) tc = 3;
+                    else if (m >= 10) tc = 2;
+                    else tc = 1;
+
+                    i += tc;
+
+                    while ((tc > 0) && (m != 0))
+                    {
+                        devbuffer[xi+tc] = '0' + (char)(m % 10);
+                        m /= 10;
+                        tc--;
+                    }
+                }
+
+                devbuffer[i] = ' ';
+                i++;
+
+                if (dev->minor == 0)
+                {
+                    devbuffer[i] = '0';
+                    i++;
+                }
+                else
+                {
+                    int_16 m = dev->minor, xi = i-1;
+                    if (m >= 100) tc = 3;
+                    else if (m >= 10) tc = 2;
+                    else tc = 1;
+
+                    i += tc;
+
+                    while ((tc > 0) && (m != 0))
+                    {
+                        devbuffer[xi+tc] = '0' + (char)(m % 10);
+                        m /= 10;
+                        tc--;
+                    }
+
+                }
+
+                devbuffer[i] = 0;
+            }
+
             break;
         case dft_socket:
             modex = DMSOCKET;
@@ -143,7 +211,7 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
     }
 
     d9r_reply_stat (io, tag, 0, 0, qid, modex | c->mode, c->atime, c->mtime,
-                    c->length, c->name, c->uid, c->gid, c->muid, (char *)0);
+                    c->length, c->name, c->uid, c->gid, c->muid, ex);
 }
 
 static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
@@ -167,7 +235,7 @@ static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
     d9r_reply_open (io, tag, qid, 0x1000);
 }
 
-static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode)
+static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_32 perm, int_8 mode, char *ext)
 {
     struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
     struct dfs_node_common *c = md->aux;
@@ -188,6 +256,49 @@ static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_
     {
         qid.type = QTDIR;
         qid.path = (int_64)dfs_mk_directory(d, name);
+    }
+    else if (perm & DMSYMLINK)
+    {
+        qid.type = QTLINK;
+        qid.path = (int_64)dfs_mk_symlink(d, name, ext);
+    }
+    else if (perm & DMSOCKET)
+    {
+        qid.path = (int_64)dfs_mk_socket(d, name);
+    }
+    else if (perm & DMDEVICE)
+    {
+        int_16 majour = 0, minor = 0, i = 1;
+
+        if ((ext == (char *)0) || (ext[0] == (char)0) || (ext[1] == (char)0) ||
+            ((ext[0] != 'c') && (ext[0] != 'b')))
+        {
+            d9r_reply_error (io, tag, "Invalid Tcreate Message.", P9_EDONTCARE);
+            return;
+        }
+
+        while (ext[i] == ' ') i++;
+
+        while (ext[i] && (ext[i] != ' '))
+        {
+            majour *= 10;
+            majour += (char)(ext[i] - '0');
+            i++;
+        }
+
+        while (ext[i] == ' ') i++;
+
+        while (ext[i])
+        {
+            minor *= 10;
+            minor += (char)(ext[i] - '0');
+            i++;
+        }
+
+        qid.path = (int_64)dfs_mk_device
+                (d, name,
+                 (ext[0] == 'b') ? dfs_block_device : dfs_character_device,
+                  majour, minor);
     }
     else
     {
@@ -308,6 +419,8 @@ static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, in
         dd[i] = (char)data[i];
     }
     dd[i] = 0;
+
+    debug (dd);
 
     d9r_reply_write (io, tag, count);
 }
