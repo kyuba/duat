@@ -1,8 +1,8 @@
 /*
- *  server.c
- *  libcurie
+ *  sxfs.h
+ *  libduat
  *
- *  Created by Magnus Deininger on 24/08/2008.
+ *  Created by Magnus Deininger on 01/10/2008.
  *  Copyright 2008 Magnus Deininger. All rights reserved.
  *
  */
@@ -23,7 +23,7 @@
  * be used to endorse or promote products derived from this software
  * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
  * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
@@ -33,45 +33,24 @@
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include <curie/multiplex.h>
-#include <curie/memory.h>
-#include <curie/main.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#include <duat/9p-server.h>
+#ifndef DUAT_SXFS_H
+#define DUAT_SXFS_H
+
+#include <curie/sexpr.h>
 #include <duat/filesystem.h>
-#include <duat/sxfs.h>
 
-static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
-{
-    a_exit(22);
-    return (void *)0;
+struct dfs *dfs_create_from_sxfs (char *);
+struct dfs *dfs_create_from_sxfs_io (struct sexpr_io *io);
+
+#endif
+
+#ifdef __cplusplus
 }
-
-static void *gm_recover(unsigned long int s)
-{
-    a_exit(23);
-    return (void *)0;
-}
-
-int a_main(void) {
-    struct dfs *fs;
-
-    set_resize_mem_recovery_function(rm_recover);
-    set_get_mem_recovery_function(gm_recover);
-
-    dfs_update_user  ("nyu",     1000);
-    dfs_update_group ("kittens", 100);
-
-    multiplex_d9s();
-
-    fs = dfs_create_from_sxfs ("tests/data/test.sxfs");
-
-    multiplex_add_d9s_socket ("./test-socket-9p", fs);
-
-    while (multiplex() != mx_nothing_to_do);
-
-    return 0;
-}
+#endif

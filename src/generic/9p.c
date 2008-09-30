@@ -42,20 +42,33 @@
 #include <curie/multiplex.h>
 
 #include <curie/sexpr.h>
+static struct sexpr_io *debug_io = (struct sexpr_io *)0;
+
 void debug (char *string)
 {
-    static struct sexpr_io *io = (struct sexpr_io *)0;
-
-    if (io == (struct sexpr_io *)0)
+    if (debug_io == (struct sexpr_io *)0)
     {
-        io = sx_open_stdio();
+        debug_io = sx_open_stdio();
     }
 
-    if (io != (struct sexpr_io *)0)
+    if (debug_io != (struct sexpr_io *)0)
     {
         struct sexpr *sx = make_string(string);
-        sx_write (io, sx);
+        sx_write (debug_io, sx);
         sx_destroy (sx);
+    }
+}
+
+void debug_sx (struct sexpr *sx)
+{
+    if (debug_io == (struct sexpr_io *)0)
+    {
+        debug_io = sx_open_stdio();
+    }
+
+    if (debug_io != (struct sexpr_io *)0)
+    {
+        sx_write (debug_io, sx);
     }
 }
 

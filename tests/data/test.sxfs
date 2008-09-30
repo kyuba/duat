@@ -1,0 +1,16 @@
+;; dummy test filesystem
+
+(directory "meow")
+
+(file "nyu" "nyoron!")
+(file "nyu2" "nyoronZ!")
+(file "nyu3" "nyoron<3!")
+
+(directory "catturday"
+  (file "izit?" "nyotyetpurr."))
+
+(directory "dev"
+  (block-device "test" 10 100)
+  (character-device "test2" 998 999))
+
+(link "test" "dev/test")
