@@ -41,8 +41,6 @@
 #include <curie/network.h>
 #include <curie/memory.h>
 
-void debug(char *);
-
 static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
 {
@@ -420,7 +418,7 @@ static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, in
     }
     dd[i] = 0;
 
-    debug (dd);
+    /*do something!*/
 
     d9r_reply_write (io, tag, count);
 }
@@ -458,4 +456,22 @@ void multiplex_d9s ()
 void multiplex_add_d9s_socket (char *socketname, struct dfs *fs)
 {
     multiplex_add_socket (socketname, on_connect, (void *)fs);
+}
+
+void multiplex_add_d9s_stdio (struct dfs *fs)
+{
+    struct d9r_io *io = d9r_open_stdio();
+
+    if (io == (struct d9r_io *)0) return;
+
+    io->Tattach = Tattach;
+    io->Twalk   = Twalk;
+    io->Tstat   = Tstat;
+    io->Topen   = Topen;
+    io->Tcreate = Tcreate;
+    io->Tread   = Tread;
+    io->Twrite  = Twrite;
+    io->aux     = (void *)fs;
+
+    multiplex_add_d9r (io, (void *)0);
 }

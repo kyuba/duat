@@ -48,6 +48,7 @@ extern "C" {
 
 void multiplex_d9s ();
 void multiplex_add_d9s_socket (char *, struct dfs *);
+void multiplex_add_d9s_stdio (struct dfs *fs);
 
 #endif
 
