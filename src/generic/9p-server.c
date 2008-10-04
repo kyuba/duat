@@ -77,17 +77,29 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 
     while (i < c) {
         if (d->c.type == dft_directory) {
-            struct tree_node *node
-                    = tree_get_node_string(d->nodes, names[i]);
-
-            if (node == (struct tree_node *)0)
+            char nx = 1;
+            if (names[i][0] == '.')
             {
-                break;
+                if (names[i][1] == 0) {
+                    nx = 0;
+                } else if ((names[i][1] == '.') && (names[i][2] == 0)) {
+                    d = d->parent;
+                    nx = 0;
+                }
             }
+            if (nx) {
+                struct tree_node *node
+                        = tree_get_node_string(d->nodes, names[i]);
 
-            if ((d = node_get_value(node)) == (struct dfs_directory *)0)
-            {
-                break;
+                if (node == (struct tree_node *)0)
+                {
+                    break;
+                }
+
+                if ((d = node_get_value(node)) == (struct dfs_directory *)0)
+                {
+                    break;
+                }
             }
 
             qid[i].type    = 0;
