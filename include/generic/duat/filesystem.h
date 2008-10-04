@@ -44,6 +44,7 @@ extern "C" {
 #define DUAT_FILESYSTEM_H
 
 #include <curie/int.h>
+#include <curie/tree.h>
 
 #define DFSSETUID    ((int_32)0x00080000)
 #define DFSSETGID    ((int_32)0x00040000)
@@ -63,6 +64,7 @@ struct dfs_node_common {
         dft_file,
         dft_symlink,
         dft_device,
+        dft_pipe,
         dft_socket
     } type;
     int_32 mode;
@@ -110,6 +112,10 @@ struct dfs_socket {
     struct dfs_node_common c;
 };
 
+struct dfs_pipe {
+    struct dfs_node_common c;
+};
+
 struct dfs {
     struct dfs_directory *root;
 };
@@ -128,6 +134,8 @@ struct dfs_symlink *dfs_mk_symlink
 struct dfs_device *dfs_mk_device
         (struct dfs_directory *, char *, enum dfs_device_type, int_16, int_16);
 struct dfs_socket *dfs_mk_socket
+        (struct dfs_directory *, char *);
+struct dfs_socket *dfs_mk_pipe
         (struct dfs_directory *, char *);
 
 /*! \brief Set a User's UID

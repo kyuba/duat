@@ -214,6 +214,23 @@ struct dfs_device *dfs_mk_device (struct dfs_directory *dir, char *name, enum df
     return rv;
 }
 
+struct dfs_socket *dfs_mk_pipe (struct dfs_directory *dir, char *name)
+{
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_socket));
+    struct dfs_socket *rv = get_pool_mem (&pool);
+
+    if (rv == (struct dfs_socket *)0) return (struct dfs_socket *)0;
+
+    initialise_dfs_node_common(&(rv->c));
+    rv->c.length = (int_64)sizeof(struct dfs_socket);
+    rv->c.type = dft_pipe;
+    rv->c.name = (char *)str_immutable_unaligned(name);
+
+    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+
+    return rv;
+}
+
 struct dfs_socket *dfs_mk_socket (struct dfs_directory *dir, char *name)
 {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_socket));

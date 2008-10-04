@@ -201,6 +201,9 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
             }
 
             break;
+        case dft_pipe:
+            modex = DMNAMEDPIPE;
+            break;
         case dft_socket:
             modex = DMSOCKET;
             break;
@@ -263,6 +266,10 @@ static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_
     else if (perm & DMSOCKET)
     {
         qid.path = (int_64)dfs_mk_socket(d, name);
+    }
+    else if (perm & DMNAMEDPIPE)
+    {
+        qid.path = (int_64)dfs_mk_pipe(d, name);
     }
     else if (perm & DMDEVICE)
     {
@@ -347,6 +354,9 @@ static void Tread_dir (struct tree_node *node, void *v)
                 case dft_socket:
                     modex = DMSOCKET;
                     break;
+                case dft_pipe:
+                    modex = DMNAMEDPIPE;
+                    break;
                 case dft_file:
                     break;
             }
@@ -410,6 +420,7 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
 
 static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
 {
+#if 0
     char dd[count + 1];
     int i;
 
@@ -419,7 +430,7 @@ static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, in
     dd[i] = 0;
 
     /*do something!*/
-
+#endif
     d9r_reply_write (io, tag, count);
 }
 
