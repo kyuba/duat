@@ -384,18 +384,48 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
     {
         case dft_directory:
             {
-                struct Tread_dir_map m
-                        = { .tag = tag, .replied = (char)0, .io = io };
-
                 struct dfs_directory *dir = (struct dfs_directory *)c;
                 if (offset == (int_64)0) md->index = 0;
-                m.index = md->index;
 
-                tree_map (dir->nodes, Tread_dir, (void *)&m);
-
-                if (m.replied == (char)0)
+                if (md->index == 0)
                 {
-                    d9r_reply_read (io, tag, 0, (int_8 *)0);
+                    int_8 *bb;
+                    struct d9r_qid qid = { QTDIR, 1, (int_64)c };
+                    int_16 slen = d9r_prepare_stat_buffer
+                            (io, &bb, 0, 0, &qid, DMDIR | dir->c.mode,
+                             dir->c.atime, dir->c.mtime, dir->c.length, ".",
+                             dir->c.uid, dir->c.gid, dir->c.muid, (char *)0);
+                    d9r_reply_read (io, tag, slen, bb);
+                    afree (slen, bb);
+                }
+                else if (md->index == 1)
+                {
+                    int_16 slen;
+                    int_8 *bb;
+                    struct d9r_qid qid = { QTDIR, 1, (int_64)c };
+
+                    dir = dir->parent;
+
+                    slen = d9r_prepare_stat_buffer
+                            (io, &bb, 0, 0, &qid, DMDIR | dir->c.mode,
+                             dir->c.atime, dir->c.mtime, dir->c.length, "..",
+                             dir->c.uid, dir->c.gid, dir->c.muid, (char *)0);
+                    d9r_reply_read (io, tag, slen, bb);
+                    afree (slen, bb);
+                }
+                else
+                {
+                    struct Tread_dir_map m
+                            = { .tag = tag, .replied = (char)0, .io = io };
+
+                    m.index = md->index - 2;
+
+                    tree_map (dir->nodes, Tread_dir, (void *)&m);
+
+                    if (m.replied == (char)0)
+                    {
+                        d9r_reply_read (io, tag, 0, (int_8 *)0);
+                    }
                 }
 
                 (md->index)++;

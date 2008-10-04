@@ -80,6 +80,7 @@ struct dfs_node_common {
 struct dfs_directory {
     struct dfs_node_common c;
     struct tree *nodes;
+    struct dfs_directory *parent;
 };
 
 struct dfs_file {
@@ -121,8 +122,6 @@ struct dfs {
 };
 
 struct dfs *dfs_create ();
-struct dfs_directory *dfs_mk_directory_r
-        (struct dfs *, int_16, char **);
 struct dfs_directory *dfs_mk_directory
         (struct dfs_directory *, char *);
 struct dfs_file *dfs_mk_file

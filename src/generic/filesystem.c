@@ -47,7 +47,7 @@ struct dfs *dfs_create () {
 
     if (rv == (struct dfs *)0) return (struct dfs *)0;
 
-    (void)dfs_mk_directory_r(rv, 0, (char **)0);
+    rv->root = dfs_mk_directory((struct dfs_directory *)0, "/");
     if (rv->root == (struct dfs_directory *)0) {
         free_pool_mem (rv);
         return (struct dfs *)0;
@@ -67,73 +67,11 @@ static void initialise_dfs_node_common (struct dfs_node_common *c)
     c->muid = "anonymous";
 }
 
-static struct memory_pool directory_pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
-
-struct dfs_directory *dfs_mk_directory_r (struct dfs *fs, int_16 pcount, char **path)
-{
-    struct dfs_directory *rv, *parent = (struct dfs_directory *)0;
-
-    if (pcount > 0) {
-        struct dfs_directory *node = fs->root,
-                             *pnode = node;
-        int_16 i = 0;
-
-        while ((node != (struct dfs_directory *)0) &&
-               (i < pcount))
-        {
-            struct tree_node *n = tree_get_node_string (node->nodes, path[i]);
-            if (n == (struct tree_node *)0)
-                break;
-
-            pnode = node;
-            node = node_get_value (n);
-            i++;
-        }
-
-        if (i == pcount) {
-            return node;
-        } else if (i == (pcount - 1)) {
-            parent = pnode;
-        } else {
-            return (struct dfs_directory *)0;
-        }
-    }
-
-    if ((rv = get_pool_mem (&directory_pool)) == (struct dfs_directory *)0) {
-        return (struct dfs_directory *)0;
-    }
-
-    rv->nodes = tree_create();
-    if (rv->nodes == (struct tree *)0)
-    {
-        free_pool_mem (rv);
-        return (struct dfs_directory *)0;
-    }
-
-    initialise_dfs_node_common(&(rv->c));
-    rv->c.type = dft_directory;
-    rv->c.mode = 0755;
-
-    if (pcount == 0)
-    {
-        rv->c.name = "/";
-        fs->root = rv;
-        return rv;
-    } else {
-        rv->c.name = (char *)str_immutable_unaligned(path[pcount - 1]);
-        if (parent != (struct dfs_directory *)0)
-        {
-            tree_add_node_string_value (parent->nodes, path[pcount - 1],
-                                        (void *)rv);
-        }
-    }
-
-    return rv;
-}
-
 struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)
 {
-    struct dfs_directory *rv = get_pool_mem (&directory_pool);
+    static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_directory));
+
+    struct dfs_directory *rv = get_pool_mem (&pool);
 
     if (rv == (struct dfs_directory *)0) return (struct dfs_directory *)0;
 
@@ -149,7 +87,15 @@ struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)
     rv->c.type = dft_directory;
     rv->c.name = (char *)str_immutable_unaligned(name);
 
-    tree_add_node_string_value (dir->nodes, name, (void *)rv);
+    if (dir != (struct dfs_directory *)0)
+    {
+        rv->parent = dir;
+        tree_add_node_string_value (dir->nodes, name, (void *)rv);
+    }
+    else
+    {
+        rv->parent = rv;
+    }
 
     return rv;
 }
