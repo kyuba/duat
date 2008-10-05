@@ -59,12 +59,12 @@ struct dfs *dfs_create () {
 static void initialise_dfs_node_common (struct dfs_node_common *c)
 {
     c->mode = 0644;
-    c->atime = 0;
-    c->mtime = 0;
-    c->length = 0;
-    c->uid = "anonymous";
-    c->gid = "freeman";
-    c->muid = "anonymous";
+    c->atime = 1223234093; /* fairly random, and current, timestamp */
+    c->mtime = 1223234093; /* fairly random, and current, timestamp */
+    c->length = sizeof (*c);
+    c->uid  = "root";
+    c->gid  = "root";
+    c->muid = "root";
 }
 
 struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)

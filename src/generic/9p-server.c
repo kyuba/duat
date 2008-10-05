@@ -206,7 +206,6 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
                         m /= 10;
                         tc--;
                     }
-
                 }
 
                 devbuffer[i] = 0;
@@ -476,6 +475,14 @@ static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, in
     d9r_reply_write (io, tag, count);
 }
 
+static void Twstat
+        (struct d9r_io *io, int_16 tag, int_32 fid, int_16 type, int_32 dev,
+         struct d9r_qid qid, int_32 mode, int_32 atime, int_32 mtime,
+         int_64 length, char *name, char *uid, char *gid, char *muid, char *ex)
+{
+    d9r_reply_wstat(io, tag); /* stub reply with 'yes' */
+}
+
 void on_connect(struct io *in, struct io *out, void *p) {
     struct d9r_io *io = d9r_open_io (in, out);
 
@@ -488,6 +495,7 @@ void on_connect(struct io *in, struct io *out, void *p) {
     io->Tcreate = Tcreate;
     io->Tread   = Tread;
     io->Twrite  = Twrite;
+    io->Twstat  = Twstat;
     io->aux     = p;
 
     multiplex_add_d9r (io, (void *)0);
@@ -524,6 +532,7 @@ void multiplex_add_d9s_io (struct io *in, struct io *out, struct dfs *fs)
     io->Tcreate = Tcreate;
     io->Tread   = Tread;
     io->Twrite  = Twrite;
+    io->Twstat  = Twstat;
     io->aux     = (void *)fs;
 
     multiplex_add_d9r (io, (void *)0);
@@ -542,6 +551,7 @@ void multiplex_add_d9s_stdio (struct dfs *fs)
     io->Tcreate = Tcreate;
     io->Tread   = Tread;
     io->Twrite  = Twrite;
+    io->Twstat  = Twstat;
     io->aux     = (void *)fs;
 
     multiplex_add_d9r (io, (void *)0);
