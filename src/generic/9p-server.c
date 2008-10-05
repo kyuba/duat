@@ -511,6 +511,24 @@ void multiplex_add_d9s_socket (char *socketname, struct dfs *fs)
     multiplex_add_socket (socketname, on_connect, (void *)fs);
 }
 
+void multiplex_add_d9s_io (struct io *in, struct io *out, struct dfs *fs)
+{
+    struct d9r_io *io = d9r_open_io(in, out);
+
+    if (io == (struct d9r_io *)0) return;
+
+    io->Tattach = Tattach;
+    io->Twalk   = Twalk;
+    io->Tstat   = Tstat;
+    io->Topen   = Topen;
+    io->Tcreate = Tcreate;
+    io->Tread   = Tread;
+    io->Twrite  = Twrite;
+    io->aux     = (void *)fs;
+
+    multiplex_add_d9r (io, (void *)0);
+}
+
 void multiplex_add_d9s_stdio (struct dfs *fs)
 {
     struct d9r_io *io = d9r_open_stdio();
