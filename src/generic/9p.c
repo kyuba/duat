@@ -584,16 +584,18 @@ struct d9r_fid_metadata *
 
 static void mx_on_read_9p (struct io *in, void *d) {
     struct io_element *element = (struct io_element *)d;
-    unsigned int p = in->position;
-    int_32 cl = (in->length - p);
+    int_32 cl = (in->length - in->position);
 
-    if (cl > 6) { /* enough data to parse a message... */
-        int_32 length = popl ((unsigned char *)(in->buffer + p));
+    while (cl > 6) { /* enough data to parse a message... */
+        int_32 length = popl ((unsigned char *)(in->buffer + in->position));
 
         if (cl < length) return;
 
-        in->position += pop_message ((unsigned char *)(in->buffer + p), length,
-                                     element->io, element->data);
+        in->position += pop_message
+                ((unsigned char *)(in->buffer + in->position), length,
+                 element->io, element->data);
+
+        cl = (in->length - in->position);
     }
 }
 
