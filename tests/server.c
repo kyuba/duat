@@ -46,17 +46,17 @@
 
 static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
 {
-    a_exit(22);
+    cexit(22);
     return (void *)0;
 }
 
 static void *gm_recover(unsigned long int s)
 {
-    a_exit(23);
+    cexit(23);
     return (void *)0;
 }
 
-int a_main(void) {
+int cmain(void) {
     struct dfs *fs;
 
     set_resize_mem_recovery_function(rm_recover);
