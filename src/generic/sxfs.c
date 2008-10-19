@@ -42,15 +42,15 @@
 #include <curie/immutable.h>
 #include <duat/sxfs.h>
 
-static void dfs_sxfs_recurse (struct dfs_directory *dir, struct sexpr *sx)
+static void dfs_sxfs_recurse (struct dfs_directory *dir, sexpr sx)
 {
-    static struct sexpr *sym_dir              = (struct sexpr *)0;
-    static struct sexpr *sym_file             = (struct sexpr *)0;
-    static struct sexpr *sym_block_device     = (struct sexpr *)0;
-    static struct sexpr *sym_character_device = (struct sexpr *)0;
-    static struct sexpr *sym_link             = (struct sexpr *)0;
+    static sexpr sym_dir              = (sexpr)0;
+    static sexpr sym_file             = (sexpr)0;
+    static sexpr sym_block_device     = (sexpr)0;
+    static sexpr sym_character_device = (sexpr)0;
+    static sexpr sym_link             = (sexpr)0;
 
-    if (sym_dir == (struct sexpr *)0)
+    if (sym_dir == (sexpr)0)
     {
         sym_dir              = make_symbol ("directory");
         sym_file             = make_symbol ("file");
@@ -61,7 +61,7 @@ static void dfs_sxfs_recurse (struct dfs_directory *dir, struct sexpr *sx)
 
     if (consp(sx))
     {
-        struct sexpr *scar = car(sx);
+        sexpr scar = car(sx);
 
         if (truep(equalp(scar, sym_dir)))
         {
@@ -112,7 +112,7 @@ static void dfs_sxfs_recurse (struct dfs_directory *dir, struct sexpr *sx)
     }
 }
 
-static void dfs_sxfs_on_read(struct sexpr *sx, struct sexpr_io *io, void *d)
+static void dfs_sxfs_on_read(sexpr sx, struct sexpr_io *io, void *d)
 {
     struct dfs *fs = (struct dfs *)d;
     dfs_sxfs_recurse (fs->root, sx);
