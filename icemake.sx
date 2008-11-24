@@ -2,6 +2,7 @@
   (name "Duat")
   (description "9P2000 I/O library")
   (version "4")
+  (url "http://kyuba.org/")
 
   (code "9p" "9p-server" "filesystem" "sxfs")
 
