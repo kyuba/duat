@@ -1,7 +1,0 @@
-#!/bin/sh
-
-splint_params='-Iinclude/generic -Iinclude/internal -export-local'
-splint_params_curie='+nolib'
-
-splint ${splint_params} ${splint_params_curie} $(find ./include/generic ./src/generic \( -name "*.c" -o -name "*.h" \))
-
