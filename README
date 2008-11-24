@@ -1,7 +1,7 @@
 ###- QUICK AND DIRTY: COMPILATION AND INSTALLATION -############################
-  You'll need scons, pkg-config and libcurie-3 or higher. No ifs or buts.
+  You'll need curie-4, including icemake...
 
-    $ scons install
+    $ icemake -dif /usr
 
 
 ################################################################################
@@ -19,25 +19,21 @@ NOTE.2:
 ###- DETAILS -##################################################################
 
 Compilation:
-  Make sure you have scons installed, then:
+  Make sure you have libcurie-4 or higher installed, then:
 
-    $ scons library
+    $ icemake
 
   A number of compilation options are available if you run into issues. To see
   them, use:
 
-    $ scons --help
+    $ icemake --help
 
 Installation:
-  use this command to install regularly (usually into /usr):
+  use this command to install regularly (for example into /usr, in the example):
 
-    $ scons install
+    $ icemake -dif /some/prefix
 
-  To add an installation-only prefix, use:
-
-    $ scons destdir=/some/prefix install
-
-Linking against libduat:
+Linking against libduat without using icemake:
   Use pkg-config to retrieve the flags needed to link with libduat:
 
     $ pkg-config --cflags --libs libduat
