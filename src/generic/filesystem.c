@@ -39,7 +39,11 @@
 #include <curie/tree.h>
 #include <curie/memory.h>
 #include <curie/immutable.h>
+#include <curie/io.h>
+#include <curie/multiplex.h>
 #include <duat/filesystem.h>
+
+#define BUFFERSIZE 4096
 
 struct dfs *dfs_create () {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs));
@@ -233,4 +237,143 @@ int_32 dfs_get_group    (char *group) {
         return (int_32)(int_pointer)node_get_value(node);
     }
     return (int_32)0;
+}
+
+enum pwd_field
+{
+    pf_account = 0,
+    pf_password = 1,
+    pf_uid = 2,
+    pf_gid = 3,
+    pf_comment = 4,
+    pf_dir = 5,
+    pf_shell = 6,
+};
+
+static void on_read_pwd (struct io *in, void *aux)
+{
+    unsigned int p = in->position;
+    char *b = in->buffer;
+    enum pwd_field status = pf_account;
+    int cuid = 0;
+    char unamebuffer[BUFFERSIZE];
+    unsigned int unamepos = 0;
+
+    unamebuffer[0] = 0;
+
+    for (unsigned int l = in->length; p < l; p++)
+    {
+        switch (b[p])
+        {
+            case ':':
+                status++;
+                break;
+            case '\n':
+                status = pf_account;
+                unamebuffer[unamepos] = 0;
+                unamepos = 0;
+
+                if (unamebuffer[0] != 0)
+                {
+                    dfs_update_user (unamebuffer, cuid);
+                }
+
+                cuid = 0;
+
+                in->position = p;
+                break;
+            default:
+                switch (status)
+                {
+                    case pf_account:
+                        if (unamepos < (BUFFERSIZE-1))
+                        {
+                            unamebuffer[unamepos] = b[p];
+                            unamepos++;
+                        }
+                        break;
+                    case pf_uid:
+                        cuid = cuid * 10 + (b[p] - '0');
+                        break;
+                    case pf_password:
+                    case pf_gid:
+                    case pf_comment:
+                    case pf_dir:
+                    case pf_shell:
+                    default:
+                        break;
+                }
+        }
+    }
+}
+
+enum grp_field
+{
+    gf_name = 0,
+    gf_password = 1,
+    gf_gid = 2,
+    gf_ulist = 3
+};
+
+static void on_read_grp (struct io *in, void *aux)
+{
+    unsigned int p = in->position;
+    char *b = in->buffer;
+    enum grp_field status = gf_name;
+    int cgid = 0;
+    char gnamebuffer[BUFFERSIZE];
+    unsigned int gnamepos = 0;
+
+    gnamebuffer[0] = 0;
+
+    for (unsigned int l = in->length; p < l; p++)
+    {
+        switch (b[p])
+        {
+            case ':':
+                status++;
+                break;
+            case '\n':
+                status = pf_account;
+                gnamebuffer[gnamepos] = 0;
+                gnamepos = 0;
+
+                if (gnamebuffer[0] != 0)
+                {
+                    dfs_update_group (gnamebuffer, cgid);
+                }
+
+                cgid = 0;
+
+                in->position = p;
+                break;
+            default:
+                switch (status)
+                {
+                    case gf_name:
+                        if (gnamepos < (BUFFERSIZE-1))
+                        {
+                            gnamebuffer[gnamepos] = b[p];
+                            gnamepos++;
+                        }
+                        break;
+                    case gf_gid:
+                        cgid = cgid * 10 + (b[p] - '0');
+                        break;
+                    case gf_password:
+                    case gf_ulist:
+                    default:
+                        break;
+                }
+        }
+    }
+}
+
+void dfs_update_ids()
+{
+    struct io *inpwd = io_open_read("/etc/passwd");
+    struct io *ingrp = io_open_read("/etc/group");
+
+    multiplex_add_io (inpwd, on_read_pwd, (void *)0, (void *)0);
+    multiplex_add_io (ingrp, on_read_grp, (void *)0, (void *)0);
 }

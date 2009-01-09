@@ -165,6 +165,15 @@ int_32 dfs_get_user     (char *user);
  *  \return The group's ID. */
 int_32 dfs_get_group    (char *group);
 
+/*! \brief Update User and Group IDs
+ *
+ *  This function updates all the group and user ids using the /etc/group and
+ *  /etc/passwd files. It actually only opens the files and adds them for the
+ *  multiplexer to be processed, which means all the IDs will get updated
+ *  while the multiplexer is running.
+ */
+void dfs_update_ids();
+
 #endif
 
 #ifdef __cplusplus
