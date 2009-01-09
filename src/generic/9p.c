@@ -801,7 +801,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 kill_tag (io, otag);
 
-                if (io->Tflush == (void *)0) {
+                if (io->Tflush != (void *)0) {
                     io->Tflush(io, tag, otag);
                 }
 
