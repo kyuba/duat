@@ -3,12 +3,12 @@
  *  libduat
  *
  *  Created by Magnus Deininger on 27/09/2008.
- *  Copyright 2008 Magnus Deininger. All rights reserved.
+ *  Copyright 2008, 2009 Magnus Deininger. All rights reserved.
  *
  */
 
 /*
- * Copyright (c) 2008, Magnus Deininger All rights reserved.
+ * Copyright (c) 2008, 2009, Magnus Deininger All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -105,7 +105,7 @@ struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)
 }
 
 
-struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile, int_8 *tbuffer, int_64 tlength, void *aux, void (*on_read)(struct dfs_file *, int_64, int_32, int_16), int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *))
+struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile, int_8 *tbuffer, int_64 tlength, void *aux, void (*on_read)(struct d9r_io *, int_16, struct dfs_file *, int_64, int_32), int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *))
 {
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs_file));
     struct dfs_file *rv = get_pool_mem (&pool);

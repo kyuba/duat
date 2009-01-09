@@ -46,6 +46,8 @@ extern "C" {
 #include <curie/int.h>
 #include <curie/tree.h>
 
+#include <duat/9p.h>
+
 #define DFSSETUID    ((int_32)0x00080000)
 #define DFSSETGID    ((int_32)0x00040000)
 #define DFSUREAD     ((int_32)0x00000100)
@@ -88,7 +90,7 @@ struct dfs_file {
     char *path;
     int_8 *data;
     void *aux;
-    void (*on_read)(struct dfs_file *, int_64, int_32, int_16);
+    void (*on_read)(struct d9r_io *, int_16, struct dfs_file *, int_64, int_32);
     int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *);
 };
 
@@ -126,7 +128,7 @@ struct dfs_directory *dfs_mk_directory
         (struct dfs_directory *, char *);
 struct dfs_file *dfs_mk_file
         (struct dfs_directory *, char *, char *, int_8 *, int_64, void *,
-         void (*)(struct dfs_file*, int_64, int_32, int_16),
+         void (*)(struct d9r_io *, int_16, struct dfs_file *, int_64, int_32),
          int_32 (*)(struct dfs_file*, int_64, int_32, int_8 *));
 struct dfs_symlink *dfs_mk_symlink
         (struct dfs_directory *, char *, char *);

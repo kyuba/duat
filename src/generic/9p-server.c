@@ -3,12 +3,12 @@
  *  libduat
  *
  *  Created by Magnus Deininger on 27/09/2008.
- *  Copyright 2008 Magnus Deininger. All rights reserved.
+ *  Copyright 2008, 2009 Magnus Deininger. All rights reserved.
  *
  */
 
 /*
- * Copyright (c) 2008, Magnus Deininger All rights reserved.
+ * Copyright (c) 2008, 2009, Magnus Deininger All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -446,11 +446,18 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
             {
                 struct dfs_file *file = (struct dfs_file *)c;
 
-                if (length > (file->c.length + offset))
+                if (file->on_read == (void *)0)
                 {
-                    length = file->c.length - offset;
+                    if (length > (file->c.length + offset))
+                    {
+                        length = file->c.length - offset;
+                    }
+                    d9r_reply_read (io, tag, length, (file->data + offset));
                 }
-                d9r_reply_read (io, tag, length, (file->data + offset));
+                else
+                {
+                    file->on_read (io, tag, file, offset, length);
+                }
             }
             break;
         default:
@@ -461,17 +468,27 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
 
 static void Twrite (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int_32 count, int_8 *data)
 {
-#if 0
-    char dd[count + 1];
-    int i;
+    struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
+    struct dfs_node_common *c = md->aux;
 
-    for (i = 0; i < count; i++) {
-        dd[i] = (char)data[i];
+    switch (c->type)
+    {
+        case dft_file:
+            {
+                struct dfs_file *f = (struct dfs_file *)c;
+
+                if (f->on_write != (void *)0)
+                {
+                    d9r_reply_write
+                            (io, tag, f->on_write (f, offset, count, data));
+                    return;
+                }
+            }
+            break;
+        default:
+            break;
     }
-    dd[i] = 0;
 
-    /*do something!*/
-#endif
     d9r_reply_write (io, tag, count);
 }
 
@@ -484,21 +501,7 @@ static void Twstat
 }
 
 void on_connect(struct io *in, struct io *out, void *p) {
-    struct d9r_io *io = d9r_open_io (in, out);
-
-    if (io == (struct d9r_io *)0) return;
-
-    io->Tattach = Tattach;
-    io->Twalk   = Twalk;
-    io->Tstat   = Tstat;
-    io->Topen   = Topen;
-    io->Tcreate = Tcreate;
-    io->Tread   = Tread;
-    io->Twrite  = Twrite;
-    io->Twstat  = Twstat;
-    io->aux     = p;
-
-    multiplex_add_d9r (io, (void *)0);
+    multiplex_add_d9s_io (in, out, (struct dfs *)p);
 }
 
 void multiplex_d9s ()
