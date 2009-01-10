@@ -149,12 +149,41 @@ struct d9r_io *d9r_open_stdio() {
     return d9r_open_io (in, out);
 }
 
+static void tree_free_pool_mem_tag (struct tree_node *n, void *aux)
+{
+    free_pool_mem (node_get_value (n));
+}
+
+static void tree_free_pool_mem_fid (struct tree_node *n, void *aux)
+{
+    struct d9r_fid_metadata *md =
+            (struct d9r_fid_metadata *)node_get_value(n);
+
+    if ((md->path_block_size > 0) &&
+         (md->path != (char **)0))
+    {
+        afree (md->path_block_size, md->path);
+    }
+
+    free_pool_mem (md);
+}
+
+static void d9r_free_resources (struct d9r_io *io)
+{
+    tree_map (io->tags, tree_free_pool_mem_tag, (void *)0);
+    tree_map (io->fids, tree_free_pool_mem_fid, (void *)0);
+
+    tree_destroy (io->tags);
+    tree_destroy (io->fids);
+
+    free_pool_mem (io);
+}
 
 void d9r_close_io (struct d9r_io *io) {
     io_close (io->in);
     io_close (io->out);
 
-    free_pool_mem (io);
+    d9r_free_resources (io);
 }
 
 void multiplex_d9r () {
@@ -603,7 +632,7 @@ static void mx_on_close_9p (struct io *in, void *d) {
     struct io_element *element = (struct io_element *)d;
 
     multiplex_del_io (element->io->out);
-    free_pool_mem (element->io);
+    d9r_free_resources (element->io);
     free_pool_mem (d);
 }
 
@@ -799,11 +828,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             if (length >= 9) {
                 int_16 otag = popw (b + 7);
 
-                kill_tag (io, otag);
-
                 if (io->Tflush != (void *)0) {
                     io->Tflush(io, tag, otag);
                 }
+
+                kill_tag (io, otag);
 
                 return length;
             }
@@ -1471,6 +1500,8 @@ void d9r_reply_version (struct d9r_io *io, int_16 tag, int_32 msize, char *versi
     slen = tolew (len);
     io_collect (out, (void *)&slen,      2);
     io_collect (out, version,            len);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
@@ -1495,6 +1526,8 @@ void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
         errno = tolew (errno);
         io_collect (out, (void *)&errno, 2);
     }
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_auth   (struct d9r_io *io, int_16 tag,
@@ -1502,6 +1535,8 @@ void d9r_reply_auth   (struct d9r_io *io, int_16 tag,
 {
     collect_header_reply (io, 13, Rauth, tag);
     collect_qid (io->out, &qid);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_attach (struct d9r_io *io, int_16 tag,
@@ -1509,6 +1544,8 @@ void d9r_reply_attach (struct d9r_io *io, int_16 tag,
 {
     collect_header_reply (io, 13, Rattach, tag);
     collect_qid (io->out, &qid);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_walk   (struct d9r_io *io, int_16 tag, int_16 qidc,
@@ -1524,6 +1561,8 @@ void d9r_reply_walk   (struct d9r_io *io, int_16 tag, int_16 qidc,
     for (i = 0; i < qidc; i++) {
         collect_qid (out, &(qid[i]));
     }
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_stat   (struct d9r_io *io, int_16 tag, int_16 type,
@@ -1545,14 +1584,20 @@ void d9r_reply_stat   (struct d9r_io *io, int_16 tag, int_16 type,
     io_collect (out, (void *)bb,         slen);
 
     afree (slen, bb);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_clunk   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rclunk, tag);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_remove  (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rremove, tag);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_open   (struct d9r_io *io, int_16 tag,
@@ -1564,6 +1609,8 @@ void d9r_reply_open   (struct d9r_io *io, int_16 tag,
     collect_qid (out, &qid);
     iounit      = tolel (iounit);
     io_collect (out, (void *)&iounit,    4);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_create (struct d9r_io *io, int_16 tag,
@@ -1576,6 +1623,8 @@ void d9r_reply_create (struct d9r_io *io, int_16 tag,
     collect_qid (out, &qid);
     iounit      = tolel (iounit);
     io_collect (out, (void *)&iounit,    4);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_read   (struct d9r_io *io, int_16 tag, int_32 count,
@@ -1588,6 +1637,8 @@ void d9r_reply_read   (struct d9r_io *io, int_16 tag, int_32 count,
     c              = tolel (count);
     io_collect (out, (void *)&c,         4);
     io_collect (out, (void *)data,       count);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_write   (struct d9r_io *io, int_16 tag, int_32 count) {
@@ -1595,12 +1646,18 @@ void d9r_reply_write   (struct d9r_io *io, int_16 tag, int_32 count) {
 
     count       = tolel (count);
     io_collect (io->out, (void *)&count,     4);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_wstat   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rwstat, tag);
+
+    kill_tag (io, tag);
 }
 
 void d9r_reply_flush   (struct d9r_io *io, int_16 tag) {
     collect_header_reply (io, 0, Rflush, tag);
+
+    kill_tag (io, tag);
 }

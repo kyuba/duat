@@ -500,7 +500,7 @@ static void Twstat
     d9r_reply_wstat(io, tag); /* stub reply with 'yes' */
 }
 
-void on_connect(struct io *in, struct io *out, void *p) {
+static void on_connect(struct io *in, struct io *out, void *p) {
     multiplex_add_d9s_io (in, out, (struct dfs *)p);
 }
 
