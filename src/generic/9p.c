@@ -630,9 +630,13 @@ static void mx_on_read_9p (struct io *in, void *d) {
 
 static void mx_on_close_9p (struct io *in, void *d) {
     struct io_element *element = (struct io_element *)d;
+    struct d9r_io *io = element->io;
 
-    multiplex_del_io (element->io->out);
-    d9r_free_resources (element->io);
+    if (io->in != io->out)
+    {
+        multiplex_del_io (io->out);
+    }
+    d9r_free_resources (io);
     free_pool_mem (d);
 }
 
@@ -647,7 +651,10 @@ void multiplex_add_d9r (struct d9r_io *io, void *data) {
     element->data = data;
 
     multiplex_add_io (io->in, mx_on_read_9p, mx_on_close_9p, (void *)element);
-    multiplex_add_io_no_callback(io->out);
+    if (io->in != io->out)
+    {
+        multiplex_add_io_no_callback(io->out);
+    }
 }
 
 /* message parser */
