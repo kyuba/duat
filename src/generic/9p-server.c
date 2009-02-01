@@ -500,6 +500,21 @@ static void Twstat
     d9r_reply_wstat(io, tag); /* stub reply with 'yes' */
 }
 
+static void initialise_io (struct d9r_io *io, struct dfs *fs)
+{
+    io->Tattach = Tattach;
+    io->Twalk   = Twalk;
+    io->Tstat   = Tstat;
+    io->Topen   = Topen;
+    io->Tcreate = Tcreate;
+    io->Tread   = Tread;
+    io->Twrite  = Twrite;
+    io->Twstat  = Twstat;
+    io->aux     = (void *)fs;
+
+    multiplex_add_d9r (io, (void *)0);
+}
+
 static void on_connect(struct io *in, struct io *out, void *p) {
     multiplex_add_d9s_io (in, out, (struct dfs *)p);
 }
@@ -528,17 +543,7 @@ void multiplex_add_d9s_io (struct io *in, struct io *out, struct dfs *fs)
 
     if (io == (struct d9r_io *)0) return;
 
-    io->Tattach = Tattach;
-    io->Twalk   = Twalk;
-    io->Tstat   = Tstat;
-    io->Topen   = Topen;
-    io->Tcreate = Tcreate;
-    io->Tread   = Tread;
-    io->Twrite  = Twrite;
-    io->Twstat  = Twstat;
-    io->aux     = (void *)fs;
-
-    multiplex_add_d9r (io, (void *)0);
+    initialise_io (io, fs);
 }
 
 void multiplex_add_d9s_stdio (struct dfs *fs)
@@ -547,15 +552,5 @@ void multiplex_add_d9s_stdio (struct dfs *fs)
 
     if (io == (struct d9r_io *)0) return;
 
-    io->Tattach = Tattach;
-    io->Twalk   = Twalk;
-    io->Tstat   = Tstat;
-    io->Topen   = Topen;
-    io->Tcreate = Tcreate;
-    io->Tread   = Tread;
-    io->Twrite  = Twrite;
-    io->Twstat  = Twstat;
-    io->aux     = (void *)fs;
-
-    multiplex_add_d9r (io, (void *)0);
+    initialise_io (io, fs);
 }

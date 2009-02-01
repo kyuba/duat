@@ -4,7 +4,7 @@
   (version "5")
   (url "http://kyuba.org/")
 
-  (code "9p" "9p-server" "filesystem" "sxfs")
+  (code "9p" "9p-server" "filesystem" "sxfs" "9p-client")
 
   (headers
-        "9p" "9p-server" "filesystem" "sxfs"))
+        "9p" "9p-server" "filesystem" "sxfs" "9p-client"))
