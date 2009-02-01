@@ -58,7 +58,14 @@ enum d9c_status_code
 struct d9c_status
 {
     enum d9c_status_code code;
-    int_32 root_fid;
+    void               (*error)  (struct d9r_io *, void *);
+    void               (*attach) (struct d9r_io *, void *);
+    void                *aux;
+};
+
+struct d9c_tag_status
+{
+    enum d9c_status_code code;
 };
 
 static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
@@ -66,11 +73,37 @@ static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
     struct d9c_status *status = (struct d9c_status *)(io->aux);
 
     status->code = d9c_ready;
+
+    if (status->attach != (void *)0)
+    {
+        status->attach (io, status->aux);
+    }
+}
+
+static void Rerror  (struct d9r_io *io, int_16 tag, char *string, int_16 code)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *mds = (struct d9c_tag_status *)(md->aux);
+
+        if (mds->code == d9c_attaching)
+        {
+            struct d9c_status *status = (struct d9c_status *)(io->aux);
+
+            status->code = d9c_error;
+
+            if (status->error != (void *)0)
+            {
+                status->error (io, status->aux);
+            }
+        }
+    }
 }
 
 /*
 
-static void Rerror  (struct d9r_io *, int_16, char *, int_16);
 static void Rflush  (struct d9r_io *, int_16);
 static void Rwalk   (struct d9r_io *, int_16, int_16, struct d9r_qid *);
 static void Ropen   (struct d9r_io *, int_16, struct d9r_qid, int_32);
@@ -100,24 +133,31 @@ void multiplex_d9c ()
     }
 }
 
-static struct d9r_io *initialise_io (struct d9r_io *io)
+void initialise_io
+        (struct d9r_io *io,
+         void (*error) (struct d9r_io *, void *),
+         void (*attach) (struct d9r_io *, void *))
 {
     struct memory_pool pool
             = MEMORY_POOL_INITIALISER (sizeof (struct d9c_status));
-
     struct d9c_status *status = get_pool_mem (&pool);
+    struct d9r_tag_metadata *md;
+    int_16 tag;
 
     if (status == (struct d9c_status *)0)
     {
         d9r_close_io (io);
-        return (struct d9r_io *)0;
+        return;
     }
 
-    status->code = d9c_attaching;
+    status->code   = d9c_attaching;
+    status->attach = attach;
+    status->error  = error;
 
     io->aux = (void *)status;
 
     io->Rattach = Rattach;
+    io->Rerror  = Rerror;
 /*    io->Rwalk   = Rwalk;
     io->Rstat   = Rstat;
     io->Ropen   = Ropen;
@@ -130,12 +170,25 @@ static struct d9r_io *initialise_io (struct d9r_io *io)
     multiplex_add_d9r (io, (void *)0);
 
     d9r_version (io, 0x2000, "9P2000");
-    d9r_attach  (io, ROOT_FID, NO_FID_9P, "none", "none");
+    tag = d9r_attach  (io, ROOT_FID, NO_FID_9P, "none", "none");
+    md  = d9r_tag_metadata (io, tag);
 
-    return io;
+    if (md != (struct d9r_tag_metadata *)0)
+    {
+        struct memory_pool pool
+                = MEMORY_POOL_INITIALISER (sizeof (struct d9c_tag_status));
+        struct d9c_tag_status *tagstatus = get_pool_mem (&pool);
+
+        tagstatus->code = d9c_attaching;
+
+        md->aux = (void *)tagstatus;
+    }
 }
 
-struct d9r_io *multiplex_add_d9c_socket (const char *socket)
+void multiplex_add_d9c_socket
+        (const char *socket,
+         void (*error) (struct d9r_io *, void *),
+         void (*attach) (struct d9r_io *, void *))
 {
     struct io *in;
     struct io *out;
@@ -154,26 +207,31 @@ struct d9r_io *multiplex_add_d9c_socket (const char *socket)
             io_close (in);
         }
 
-        return (struct d9r_io *)0;
+        return;
     }
 
-    return multiplex_add_d9c_io  (in, out);
+    multiplex_add_d9c_io  (in, out, error, attach);
 }
 
-struct d9r_io *multiplex_add_d9c_io (struct io *in, struct io *out)
+void multiplex_add_d9c_io
+        (struct io *in, struct io *out,
+         void (*error) (struct d9r_io *, void *),
+         void (*attach) (struct d9r_io *, void *))
 {
     struct d9r_io *io = d9r_open_io(in, out);
 
-    if (io == (struct d9r_io *)0) return (struct d9r_io *)0;
+    if (io == (struct d9r_io *)0) return;
 
-    return initialise_io (io);
+    initialise_io (io, error, attach);
 }
 
-struct d9r_io *multiplex_add_d9c_stdio ()
+void multiplex_add_d9c_stdio
+        (void (*error) (struct d9r_io *, void *),
+         void (*attach) (struct d9r_io *, void *))
 {
     struct d9r_io *io = d9r_open_stdio();
 
-    if (io == (struct d9r_io *)0) return (struct d9r_io *)0;
+    if (io == (struct d9r_io *)0) return;
 
-    return initialise_io (io);
+    initialise_io (io, error, attach);
 }

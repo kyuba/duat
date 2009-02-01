@@ -47,11 +47,17 @@ extern "C" {
 
 void multiplex_d9c ();
 
-struct d9r_io *multiplex_add_d9c_io
-        (struct io *, struct io *);
-struct d9r_io *multiplex_add_d9c_socket
-        (const char *);
-struct d9r_io *multiplex_add_d9c_stdio ();
+void multiplex_add_d9c_io
+        (struct io *, struct io *,
+         void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, void *));
+void multiplex_add_d9c_socket
+        (const char *,
+         void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, void *));
+void multiplex_add_d9c_stdio
+        (void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, void *));
 
 struct io *io_open_read_9p
         (struct d9r_io *io, const char *);
