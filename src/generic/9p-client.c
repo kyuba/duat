@@ -36,14 +36,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
+#include <curie/memory.h>
 #include <curie/multiplex.h>
 #include <curie/network.h>
 #include <duat/9p-client.h>
 
+#define ROOT_FID 1
+
+enum d9c_status_code
+{
+    d9c_attaching,
+    d9c_walking,
+    d9c_opening,
+    d9c_writing,
+    d9c_reading,
+    d9c_closing,
+    d9c_ready,
+    d9c_error
+};
+
+struct d9c_status
+{
+    enum d9c_status_code code;
+    int_32 root_fid;
+};
+
+static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
+{
+    struct d9c_status *status = (struct d9c_status *)(io->aux);
+
+    status->code = d9c_ready;
+}
+
 /*
 
-static void Rauth   (struct d9r_io *, int_16, struct d9r_qid);
-static void Rattach (struct d9r_io *, int_16, struct d9r_qid);
 static void Rerror  (struct d9r_io *, int_16, char *, int_16);
 static void Rflush  (struct d9r_io *, int_16);
 static void Rwalk   (struct d9r_io *, int_16, int_16, struct d9r_qid *);
@@ -76,8 +102,23 @@ void multiplex_d9c ()
 
 static struct d9r_io *initialise_io (struct d9r_io *io)
 {
-/*    io->Rattach = Rattach;
-    io->Rwalk   = Rwalk;
+    struct memory_pool pool
+            = MEMORY_POOL_INITIALISER (sizeof (struct d9c_status));
+
+    struct d9c_status *status = get_pool_mem (&pool);
+
+    if (status == (struct d9c_status *)0)
+    {
+        d9r_close_io (io);
+        return (struct d9r_io *)0;
+    }
+
+    status->code = d9c_attaching;
+
+    io->aux = (void *)status;
+
+    io->Rattach = Rattach;
+/*    io->Rwalk   = Rwalk;
     io->Rstat   = Rstat;
     io->Ropen   = Ropen;
     io->Rcreate = Rcreate;
@@ -87,6 +128,9 @@ static struct d9r_io *initialise_io (struct d9r_io *io)
     io->Rwstat  = Rwstat;*/
 
     multiplex_add_d9r (io, (void *)0);
+
+    d9r_version (io, 0x2000, "9P2000");
+    d9r_attach  (io, ROOT_FID, NO_FID_9P, "none", "none");
 
     return io;
 }
