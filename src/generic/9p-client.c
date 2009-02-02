@@ -39,6 +39,7 @@
 #include <curie/memory.h>
 #include <curie/multiplex.h>
 #include <curie/network.h>
+#include <curie/io.h>
 #include <duat/9p-client.h>
 
 #define ROOT_FID 1
@@ -46,11 +47,13 @@
 enum d9c_status_code
 {
     d9c_attaching,
-    d9c_walking,
-    d9c_opening,
-    d9c_writing,
-    d9c_reading,
-    d9c_closing,
+    d9c_walking_read,
+    d9c_opening_read,
+    d9c_ready_read,
+    d9c_walking_create,
+    d9c_walking_write,
+    d9c_opening_write,
+    d9c_ready_write,
     d9c_ready,
     d9c_error
 };
@@ -66,6 +69,11 @@ struct d9c_status
 struct d9c_tag_status
 {
     enum d9c_status_code code;
+    int_32               fid;
+    int                  mode;
+    struct io           *io;
+    const char          *npath;
+    int_64               offset;
 };
 
 static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
@@ -80,6 +88,151 @@ static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
     }
 }
 
+static void Rwalk   (struct d9r_io *io, int_16 tag, int_16 qidn,
+                     struct d9r_qid *qid)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
+
+        switch (status->code)
+        {
+            case d9c_walking_read:
+            {
+                struct d9r_tag_metadata *md =
+                        d9r_tag_metadata (io, d9r_open (io, status->fid,
+                                                        P9_OREAD));
+
+                if (md != (struct d9r_tag_metadata *)0)
+                {
+                    status->code = d9c_opening_read;
+                    md->aux = (void *)status;
+                }
+
+                break;
+            }
+            case d9c_walking_create:
+            {
+                struct d9r_tag_metadata *md =
+                        d9r_tag_metadata
+                            (io, d9r_create 
+                                     (io, status->fid, status->npath,
+                                      status->mode, P9_OWRITE, (char *)0));
+
+                if (md != (struct d9r_tag_metadata *)0)
+                {
+                    status->code = d9c_opening_write;
+                    md->aux = (void *)status;
+                }
+
+                break;
+            }
+            case d9c_walking_write:
+            {
+                struct d9r_tag_metadata *md =
+                        d9r_tag_metadata (io, d9r_open (io, status->fid,
+                                                        P9_OWRITE));
+
+                if (md != (struct d9r_tag_metadata *)0)
+                {
+                    status->code = d9c_opening_write;
+                    md->aux = (void *)status;
+                }
+
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+}
+
+static void Rread   (struct d9r_io *io, int_16 tag, int_32 count, int_8 *data)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
+        int_64 noff = status->offset + (int_64)count;
+
+        if (count != 0)
+        {
+            io_write (status->io, (const char *)data, count);
+        }
+
+        struct d9r_tag_metadata *md =
+                d9r_tag_metadata (io, d9r_read (io, status->fid, noff,
+                                                0x1000));
+
+        if (md != (struct d9r_tag_metadata *)0)
+        {
+            md->aux = (void *)status;
+        }
+    }
+}
+
+static void Rwrite  (struct d9r_io *io, int_16 tag, int_32 count)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
+        status->offset += (int_64)count;
+        int_64 noff = status->offset;
+        struct io *sio = status->io;
+
+        sio->position += count;
+
+        int_32 xlen = sio->length - sio->position;
+
+        if (xlen != 0)
+        {
+            if (xlen > 0x1000) xlen = 0x1000;
+
+            struct d9r_tag_metadata *md =
+                    d9r_tag_metadata
+                        (io, d9r_write (io, status->fid, noff, xlen,
+                         (int_8 *)(sio->buffer + sio->position)));
+
+            if (md != (struct d9r_tag_metadata *)0)
+            {
+                md->aux = (void *)status;
+            }
+        }
+    }
+}
+
+static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
+                     int_32 fid)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
+
+        switch (status->code)
+        {
+            case d9c_opening_read:
+                status->code = d9c_ready_read;
+
+                Rread (io, tag, 0, (int_8 *)0);
+            case d9c_opening_write:
+                status->code = d9c_ready_write;
+
+                Rwrite (io, tag, 0);
+
+            default:
+                break;
+        }
+    }
+}
+
 static void Rerror  (struct d9r_io *io, int_16 tag, char *string, int_16 code)
 {
     struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
@@ -88,16 +241,34 @@ static void Rerror  (struct d9r_io *io, int_16 tag, char *string, int_16 code)
     {
         struct d9c_tag_status *mds = (struct d9c_tag_status *)(md->aux);
 
-        if (mds->code == d9c_attaching)
+        switch (mds->code)
         {
-            struct d9c_status *status = (struct d9c_status *)(io->aux);
-
-            status->code = d9c_error;
-
-            if (status->error != (void *)0)
+            case d9c_attaching:
             {
-                status->error (io, status->aux);
+                struct d9c_status *status = (struct d9c_status *)(io->aux);
+
+                status->code = d9c_error;
+
+                if (status->error != (void *)0)
+                {
+                    status->error (io, status->aux);
+                }
+                break;
             }
+            case d9c_walking_read:
+            case d9c_walking_create:
+            case d9c_walking_write:
+            case d9c_opening_read:
+            case d9c_opening_write:
+            case d9c_ready_read:
+            case d9c_ready_write:
+            {
+                io_finish (mds->io);
+                kill_fid (io, mds->fid);
+            }
+
+            default:
+                break;
         }
     }
 }
@@ -105,11 +276,7 @@ static void Rerror  (struct d9r_io *io, int_16 tag, char *string, int_16 code)
 /*
 
 static void Rflush  (struct d9r_io *, int_16);
-static void Rwalk   (struct d9r_io *, int_16, int_16, struct d9r_qid *);
-static void Ropen   (struct d9r_io *, int_16, struct d9r_qid, int_32);
 static void Rcreate (struct d9r_io *, int_16, struct d9r_qid, int_32);
-static void Rread   (struct d9r_io *, int_16, int_32, int_8 *);
-static void Rwrite  (struct d9r_io *, int_16, int_32);
 static void Rclunk  (struct d9r_io *, int_16);
 static void Rremove (struct d9r_io *, int_16);
 static void Rstat   (struct d9r_io *, int_16, int_16, int_32,
@@ -154,16 +321,16 @@ void initialise_io
     status->attach = attach;
     status->error  = error;
 
-    io->aux = (void *)status;
+    io->aux        = (void *)status;
 
     io->Rattach = Rattach;
     io->Rerror  = Rerror;
-/*    io->Rwalk   = Rwalk;
-    io->Rstat   = Rstat;
+    io->Rwalk   = Rwalk;
     io->Ropen   = Ropen;
-    io->Rcreate = Rcreate;
     io->Rread   = Rread;
     io->Rwrite  = Rwrite;
+/*    io->Rstat   = Rstat;
+    io->Rcreate = Rcreate;
     io->Rstat   = Rstat;
     io->Rwstat  = Rwstat;*/
 
@@ -234,4 +401,101 @@ void multiplex_add_d9c_stdio
     if (io == (struct d9r_io *)0) return;
 
     initialise_io (io, error, attach);
+}
+
+static struct io *io_open_9p
+        (struct d9r_io *io9, const char *path, enum d9c_status_code code,
+         const char *npath, int mode)
+{
+    struct io *io = io_open_special();
+
+    if (io == (struct io *)0) return (struct io *)0;
+
+    struct memory_pool pool
+            = MEMORY_POOL_INITIALISER (sizeof (struct d9c_tag_status));
+    struct d9c_tag_status *status = get_pool_mem (&pool);
+
+    if (status == (struct d9c_tag_status *)0)
+    {
+        io_close (io);
+
+        return (struct io *)0;
+    }
+
+    status->code   = code;
+    status->mode   = mode;
+    status->npath  = npath;
+    status->offset = (int_64)0;
+    int i = 0, j = 0;
+    int_32 fid = find_free_fid (io9);
+
+    while (path[i])
+    {
+        if (path[i] == '/') j++;
+        i++;
+    }
+
+    if (i > 0)
+    {
+        j++;
+        status->fid = fid;
+        status->io  = io;
+
+        char  pathn[i];
+        char *pathx[j];
+
+        pathx[0] = pathn;
+
+        for (j = 0, i = 0; path[i]; i++)
+        {
+            if (path[i] == '/')
+            {
+                pathn[i] = (char)0;
+                j++;
+                pathx[j] = pathn + i + 1;
+            }
+            else
+            {
+                pathn[i] = path[i];
+            }
+        }
+        pathn[i] = (char)0;
+
+        struct d9r_tag_metadata *md =
+                d9r_tag_metadata (io9, d9r_walk (io9, ROOT_FID, fid, j, pathx));
+
+        if (md != (struct d9r_tag_metadata *)0)
+        {
+            md->aux = (void *)status;
+        }
+    }
+    else
+    {
+        struct d9r_tag_metadata *md =
+                d9r_tag_metadata (io9, d9r_walk (io9, ROOT_FID, fid, 0,
+                                                 (char **)0));
+
+        if (md != (struct d9r_tag_metadata *)0)
+        {
+            md->aux = (void *)status;
+        }
+    }
+
+    return io;
+}
+
+struct io *io_open_read_9p (struct d9r_io *io, const char *path)
+{
+    return io_open_9p (io, path, d9c_walking_read, (const char *)0, 0);
+}
+
+struct io *io_open_write_9p (struct d9r_io *io, const char *path)
+{
+    return io_open_9p (io, path, d9c_walking_write, (const char *)0, 0);
+}
+
+struct io *io_open_create_9p
+        (struct d9r_io *io, const char *path, const char *npath, int mode)
+{
+    return io_open_9p (io, path, d9c_walking_create, npath, mode);
 }

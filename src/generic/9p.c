@@ -496,6 +496,14 @@ static int_16 find_free_tag (struct d9r_io *io) {
     return tag;
 }
 
+int_32 find_free_fid (struct d9r_io *io) {
+    int_32 fid = 2;
+
+    while (tree_get_node(io->tags, (int_pointer)fid) != (struct tree_node *)0) fid++;
+
+    return fid;
+}
+
 struct d9r_tag_metadata *
         d9r_tag_metadata (struct d9r_io *io, int_16 tag)
 {
@@ -509,8 +517,7 @@ struct d9r_tag_metadata *
     return (struct d9r_tag_metadata *)0;
 }
 
-static void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc,
-                          char **path)
+void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc, char **path)
 {
     static struct memory_pool d9r_fid_pool = MEMORY_POOL_INITIALISER(sizeof (struct d9r_fid_metadata));
 
@@ -574,7 +581,8 @@ static void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc,
     tree_add_node_value (io->fids, (int_pointer)fid, (void *)md);
 }
 
-static void kill_fid (struct d9r_io *io, int_32 fid) {
+void kill_fid (struct d9r_io *io, int_32 fid)
+{
     struct tree_node *n =
             tree_get_node(io->fids, (int_pointer)fid);
 
@@ -665,10 +673,9 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     int_16 tag = popw (b + 5);
     int_32 i = 7;
 
-    register_tag(io, tag);
-
     switch (code) {
         case Tversion:
+            register_tag(io, tag);
             if (length > 13)
             {
                 char *versionstring;
@@ -738,9 +745,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     }
                 }
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tauth:
+            register_tag(io, tag);
             if (io->Tauth == (void *)0) break;
 
             if (length >= 15) {
@@ -762,7 +772,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rauth:
-            if (io->Rauth == (void *)0) return length;
+            if (io->Rauth == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 20) {
                 struct d9r_qid qid = {
@@ -773,9 +787,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Rauth(io, tag, qid);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tattach:
+            register_tag(io, tag);
             if (io->Tattach == (void *)0) break;
 
             if (length >= 19) {
@@ -800,7 +817,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rattach:
-            if (io->Rattach == (void *)0) return length;
+            if (io->Rattach == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 20) {
                 struct d9r_qid qid = {
@@ -811,16 +832,27 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Rattach(io, tag, qid);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Rerror:
-            if (io->Rerror == (void *)0) return length;
+            if (io->Rerror == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length > 9) {
                 char *message = pop_string(b, &i, length);
                 int_16 errno = P9_EDONTCARE;
 
-                if (message != (char *)0) return length;
+                if (message == (char *)0)
+                {
+                    kill_tag (io, tag);
+                    return length;
+                }
+
                 if ((io->version == d9r_version_9p2000_dot_u) &&
                     (length >= (i + 2)))
                 {
@@ -829,9 +861,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Rerror(io, tag, message, errno);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tflush:
+            register_tag(io, tag);
             if (length >= 9) {
                 int_16 otag = popw (b + 7);
 
@@ -850,9 +885,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 io->Rflush(io, tag);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Twalk:
+            register_tag(io, tag);
             if (io->Twalk == (void *)0) break;
 
             if (length >= 17) {
@@ -883,7 +921,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rwalk:
-            if (io->Rwalk == (void *)0) return length;
+            if (io->Rwalk == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 9) {
                 int_16 qidc = popw (b + 7);
@@ -894,7 +936,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 i = 9;
 
                 while (r < qidc) {
-                    if ((i + 13) < length) return length;
+                    if ((i + 13) < length)
+                    {
+                        kill_tag (io, tag);
+                        return length;
+                    }
 
                     qid[r].type    = b[i];
                     qid[r].version = popl (b + i + 1);
@@ -907,9 +953,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Rwalk(io, tag, qidc, qid);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Topen:
+            register_tag(io, tag);
             if (io->Topen == (void *)0) break;
 
             if (length >= 10) {
@@ -922,7 +971,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Ropen:
-            if (io->Ropen == (void *)0) return length;
+            if (io->Ropen == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 24) {
                 struct d9r_qid qid = {
@@ -934,9 +987,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Ropen(io, tag, qid, iounit);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tcreate:
+            register_tag(io, tag);
             if (io->Tcreate == (void *)0) break;
 
             if (length >= 18) {
@@ -968,7 +1024,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rcreate:
-            if (io->Rcreate == (void *)0) return length;
+            if (io->Rcreate == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 24) {
                 struct d9r_qid qid = {
@@ -980,9 +1040,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
                 io->Rcreate(io, tag, qid, iounit);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tread:
+            register_tag(io, tag);
             if (io->Tread == (void *)0) break;
 
             if (length >= 23) {
@@ -996,7 +1059,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rread:
-            if (io->Rread == (void *)0) return length;
+            if (io->Rread == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 11) {
                 int_32 count = popl (b + 7);
@@ -1006,9 +1073,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                     io->Rread(io, tag, count, data);
                 }
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Twrite:
+            register_tag(io, tag);
             if (io->Twrite == (void *)0) break;
 
             if (length >= 23) {
@@ -1025,16 +1095,23 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rwrite:
-            if (io->Rwrite == (void *)0) return length;
+            if (io->Rwrite == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 11) {
                 int_32 count = popl (b + 7);
 
                 io->Rwrite(io, tag, count);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tclunk:
+            register_tag(io, tag);
             if (length >= 11) {
                 int_32 fid = popl (b + 7);
 
@@ -1058,9 +1135,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 io->Rclunk(io, tag);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tremove:
+            register_tag(io, tag);
             if (length >= 11) {
                 int_32 fid = popl (b + 7);
 
@@ -1084,9 +1164,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 io->Rremove(io, tag);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Tstat:
+            register_tag(io, tag);
             if (io->Tstat == (void *)0) break;
 
             if (length >= 11) {
@@ -1099,7 +1182,11 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             break;
 
         case Rstat:
-            if (io->Rstat == (void *)0) return length;
+            if (io->Rstat == (void *)0)
+            {
+                kill_tag (io, tag);
+                return length;
+            }
 
             if (length >= 45) {
                 int_16 slen = popw (b + 7), type;
@@ -1116,9 +1203,12 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 io->Rstat(io, tag, type, dev, qid, mode, atime, mtime, length,
                           name, uid, gid, muid, ext);
             }
+
+            kill_tag (io, tag);
             return length;
 
         case Twstat:
+            register_tag(io, tag);
             if (io->Twstat == (void *)0) break;
 
             if (length >= 49) {
@@ -1143,6 +1233,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
             {
                 io->Rwstat(io, tag);
             }
+
+            kill_tag (io, tag);
             return length;
 
         default:
@@ -1151,8 +1243,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     }
 
     d9r_reply_error (io, tag,
-                         "Function not implemented or malformed message.",
-                         P9_EDONTCARE);
+                     "Function not implemented or malformed message.",
+                     P9_EDONTCARE);
 
     return length;
 }
@@ -1278,6 +1370,8 @@ int_16 d9r_walk    (struct d9r_io *io, int_32 fid, int_32 newfid,
     int_32 ol  = 4 + 4 + 2 + (pathcount * 2);
     int_16 i   = 0, le[pathcount];
 
+    register_fid (io, newfid, pathcount, path);
+
     while (i < pathcount)
     {
         int len = 0;
@@ -1368,8 +1462,8 @@ int_16 d9r_open    (struct d9r_io *io, int_32 fid, int_8 mode) {
     return otag;
 }
 
-int_16 d9r_create  (struct d9r_io *io, int_32 fid, char *name,
-                        int_32 perm, int_8 mode, char *ext)
+int_16 d9r_create  (struct d9r_io *io, int_32 fid, const char *name,
+                    int_32 perm, int_8 mode, const char *ext)
 {
     int_16 len = 0, extlen = 0;
     int_16 otag = find_free_tag (io);

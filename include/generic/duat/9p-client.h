@@ -64,13 +64,19 @@ struct io *io_open_read_9p
 struct io *io_open_write_9p
         (struct d9r_io *io, const char *);
 struct io *io_open_create_9p
-        (struct d9r_io *io, const char *, int);
+        (struct d9r_io *io, const char *, const char *, int);
+
+#if 0
+
+/* not implemented */
 
 struct io *d9c_stat
         (struct d9r_io *io, const char *,
          void (*Rstat) (int_16, int_32, struct d9r_qid, int_32, int_32, int_32,
                         int_64, char *, char *, char *, char *, char *, void *),
          void *);
+
+#endif
 
 #endif
 

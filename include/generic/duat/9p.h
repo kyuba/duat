@@ -3,7 +3,7 @@
  *  libduat
  *
  *  Created by Magnus Deininger on 21/08/2008.
- *  Copyright 2008 Magnus Deininger. All rights reserved.
+ *  Copyright 2008, 2009 Magnus Deininger. All rights reserved.
  *
  */
 
@@ -365,7 +365,8 @@ int_16 d9r_walk    (struct d9r_io *, int_32, int_32, int_16, char **);
 int_16 d9r_open    (struct d9r_io *, int_32, int_8);
 /*! \brief Send a Tcreate Message
  *  \return The tag the request was sent with. */
-int_16 d9r_create  (struct d9r_io *, int_32, char *, int_32, int_8, char *);
+int_16 d9r_create  (struct d9r_io *, int_32, const char *, int_32, int_8,
+                    const char *);
 /*! \brief Send a Tread Message
  *  \return The tag the request was sent with. */
 int_16 d9r_read    (struct d9r_io *, int_32, int_64, int_32);
@@ -486,6 +487,11 @@ struct d9r_fid_metadata {
 
 /*! \brief Retrieve FID Metadata */
 struct d9r_fid_metadata *d9r_fid_metadata (struct d9r_io *, int_32);
+
+void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc, char **path);
+void kill_fid (struct d9r_io *io, int_32 fid);
+int_32 find_free_fid (struct d9r_io *io);
+
 /*! @} */
 
 /*! \defgroup P9UtilityFunctions 9P Utility Functions
