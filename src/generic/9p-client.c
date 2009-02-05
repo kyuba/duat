@@ -303,7 +303,8 @@ void multiplex_d9c ()
 void initialise_io
         (struct d9r_io *io,
          void (*error) (struct d9r_io *, void *),
-         void (*attach) (struct d9r_io *, void *))
+         void (*attach) (struct d9r_io *, void *),
+         void *aux)
 {
     struct memory_pool pool
             = MEMORY_POOL_INITIALISER (sizeof (struct d9c_status));
@@ -320,6 +321,7 @@ void initialise_io
     status->code   = d9c_attaching;
     status->attach = attach;
     status->error  = error;
+    status->aux    = aux;
 
     io->aux        = (void *)status;
 
@@ -355,7 +357,8 @@ void initialise_io
 void multiplex_add_d9c_socket
         (const char *socket,
          void (*error) (struct d9r_io *, void *),
-         void (*attach) (struct d9r_io *, void *))
+         void (*attach) (struct d9r_io *, void *),
+         void *aux)
 {
     struct io *in;
     struct io *out;
@@ -377,30 +380,32 @@ void multiplex_add_d9c_socket
         return;
     }
 
-    multiplex_add_d9c_io  (in, out, error, attach);
+    multiplex_add_d9c_io  (in, out, error, attach, aux);
 }
 
 void multiplex_add_d9c_io
         (struct io *in, struct io *out,
          void (*error) (struct d9r_io *, void *),
-         void (*attach) (struct d9r_io *, void *))
+         void (*attach) (struct d9r_io *, void *),
+         void *aux)
 {
     struct d9r_io *io = d9r_open_io(in, out);
 
     if (io == (struct d9r_io *)0) return;
 
-    initialise_io (io, error, attach);
+    initialise_io (io, error, attach, aux);
 }
 
 void multiplex_add_d9c_stdio
         (void (*error) (struct d9r_io *, void *),
-         void (*attach) (struct d9r_io *, void *))
+         void (*attach) (struct d9r_io *, void *),
+         void *aux)
 {
     struct d9r_io *io = d9r_open_stdio();
 
     if (io == (struct d9r_io *)0) return;
 
-    initialise_io (io, error, attach);
+    initialise_io (io, error, attach, aux);
 }
 
 static struct io *io_open_9p

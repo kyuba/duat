@@ -15,4 +15,6 @@
   (version "1")
   (url "http://kyuba.org/")
 
+  (libraries "duat")
+
   (code "duat-client"))
