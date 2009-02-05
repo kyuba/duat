@@ -1,14 +1,14 @@
 /*
- *  server.c
- *  libduat
+ *  duat-client.c
+ *  d9c
  *
- *  Created by Magnus Deininger on 24/08/2008.
- *  Copyright 2008 Magnus Deininger. All rights reserved.
+ *  Created by Magnus Deininger on 05/02/2009.
+ *  Copyright 2009 Magnus Deininger. All rights reserved.
  *
  */
 
 /*
- * Copyright (c) 2008, Magnus Deininger All rights reserved.
+ * Copyright (c) 2009, Magnus Deininger All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -23,7 +23,7 @@
  * be used to endorse or promote products derived from this software
  * without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
  * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
  * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
  * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
@@ -33,45 +33,13 @@
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include <curie/multiplex.h>
-#include <curie/memory.h>
 #include <curie/main.h>
+#include <duat/9p-client.h>
 
-#include <duat/9p-server.h>
-#include <duat/filesystem.h>
-#include <duat/sxfs.h>
-
-static void *rm_recover(unsigned long int s, void *c, unsigned long int l)
+int cmain()
 {
-    cexit(22);
-    return (void *)0;
-}
-
-static void *gm_recover(unsigned long int s)
-{
-    cexit(23);
-    return (void *)0;
-}
-
-int cmain(void) {
-    struct dfs *fs;
-
-    set_resize_mem_recovery_function(rm_recover);
-    set_get_mem_recovery_function(gm_recover);
-
-    dfs_update_user  ("nyu",     1000);
-    dfs_update_group ("kittens", 100);
-
-    multiplex_d9s();
-
-    fs = dfs_create_from_sxfs ("tests/data/test.sxfs");
-
-    multiplex_add_d9s_socket ("./test-socket-9p", fs);
-
-    while (multiplex() != mx_nothing_to_do);
-
     return 0;
 }

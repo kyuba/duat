@@ -4,7 +4,15 @@
   (version "5")
   (url "http://kyuba.org/")
 
-  (code "9p" "9p-server" "filesystem" "sxfs" "9p-client")
+  (code "9p" "9p-server" "filesystem" "9p-client")
 
   (headers
-        "9p" "9p-server" "filesystem" "sxfs" "9p-client"))
+        "9p" "9p-server" "filesystem" "9p-client"))
+
+(programme "d9c" libcurie
+  (name "d9c")
+  (description "Duat client programme")
+  (version "1")
+  (url "http://kyuba.org/")
+
+  (code "duat-client"))
