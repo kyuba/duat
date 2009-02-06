@@ -41,32 +41,39 @@
 #include <curie/multiplex.h>
 #include <duat/9p-client.h>
 
+struct sexpr_io *stdio;
+
 static int print_help ()
 {
-    return 0;
+    return 1;
 }
 
 static void on_connect (struct d9r_io *io, void *aux)
 {
+    cexit (0);
 }
 
-static void on_error (struct d9r_io *io, void *aux)
+static void on_error (struct d9r_io *io, const char *error, void *aux)
 {
+    sx_write (stdio, make_string (error));
+
+    cexit (3);
 }
 
 int cmain()
 {
-    static sexpr i_socket = sx_false;
+    sexpr i_socket = sx_false;
+    stdio = sx_open_stdio();
 
     multiplex_d9c ();
 
-    for (int i = 0; curie_argv[i]; i++)
+    for (int i = 0; curie_argv[i] != (char *)0; i++)
     {
         if (curie_argv[i][0] == '-')
         {
-            int y = 1;
             int xn = i + 1;
-            while (curie_argv[i][y] != 0)
+
+            for (int y = 1; curie_argv[i][y] != (char)0; y++)
             {
                 switch (curie_argv[i][y])
                 {
@@ -81,19 +88,16 @@ int cmain()
                     case '-':
                         return print_help ();
                 }
-
-                y++;
             }
 
             i = xn;
         }
     }
 
-    if (stringp(i_socket))
-    {
-        multiplex_add_d9c_socket
-                (sx_string (i_socket), on_connect, on_error, (void *)0);
-    }
+    if (!stringp(i_socket)) return 2;
+
+    multiplex_add_d9c_socket
+            (sx_string (i_socket), on_connect, on_error, (void *)0);
 
     while (multiplex() == mx_ok);
 

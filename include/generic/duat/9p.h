@@ -268,7 +268,7 @@ struct d9r_io {
     /*! \brief Callback for an incoming Rattach Message */
     void (*Rattach) (struct d9r_io *, int_16, struct d9r_qid);
     /*! \brief Callback for an incoming Rerror Message */
-    void (*Rerror)  (struct d9r_io *, int_16, char *, int_16);
+    void (*Rerror)  (struct d9r_io *, int_16, const char *, int_16);
     /*! \brief Callback for an incoming Rflush Message */
     void (*Rflush)  (struct d9r_io *, int_16);
     /*! \brief Callback for an incoming Rwalk Message */
@@ -419,7 +419,7 @@ void d9r_reply_stat    (struct d9r_io *, int_16, int_16, int_32,
 void d9r_reply_wstat   (struct d9r_io *, int_16);
 
 /*! \brief Send an Rerror Message */
-void d9r_reply_error   (struct d9r_io *, int_16, char *, int_16);
+void d9r_reply_error   (struct d9r_io *, int_16, const char *, int_16);
 
 /*! @} */
 

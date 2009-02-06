@@ -50,16 +50,16 @@ void multiplex_d9c ();
 void multiplex_add_d9c_io
         (struct io *, struct io *,
          void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, const char *, void *),
          void *);
 void multiplex_add_d9c_socket
         (const char *,
          void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, const char *, void *),
          void *);
 void multiplex_add_d9c_stdio
         (void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, void *),
+         void (*) (struct d9r_io *, const char *, void *),
          void *);
 
 struct io *io_open_read_9p

@@ -1605,7 +1605,7 @@ void d9r_reply_version (struct d9r_io *io, int_16 tag, int_32 msize, char *versi
     kill_tag (io, tag);
 }
 
-void d9r_reply_error  (struct d9r_io *io, int_16 tag, char *string,
+void d9r_reply_error  (struct d9r_io *io, int_16 tag, const char *string,
                            int_16 errno)
 {
     int_16 len = 0;
