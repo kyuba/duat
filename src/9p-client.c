@@ -45,26 +45,94 @@ enum d9c_status_code
     d9c_opening_write,
     d9c_ready_write,
     d9c_ready,
+    d9c_ready_write_working,
+    d9c_closing_write,
     d9c_error
 };
 
 struct d9c_status
 {
-    enum d9c_status_code code;
-    void               (*attach) (struct d9r_io *, void *);
-    void               (*error)  (struct d9r_io *, const char *, void *);
-    void                *aux;
+    enum d9c_status_code   code;
+    void                 (*attach) (struct d9r_io *, void *);
+    void                 (*error)  (struct d9r_io *, const char *, void *);
+    void                  *aux;
 };
 
 struct d9c_tag_status
 {
-    enum d9c_status_code code;
-    int_32               fid;
-    int                  mode;
-    struct io           *io;
-    const char          *npath;
-    int_64               offset;
+    enum d9c_status_code   code;
+    int_32                 fid;
+    int                    mode;
+    struct io             *io;
+    const char            *npath;
+    int_64                 offset;
 };
+
+struct d9c_wx
+{
+    struct d9r_io         *io;
+    struct d9c_tag_status *status;
+};
+
+static void invoke_write
+        (struct d9r_io *io, struct d9c_tag_status *status, int_32 count)
+{
+    status->offset += (int_64)count;
+    int_64 noff = status->offset;
+    struct io *sio = status->io;
+
+    sio->position += count;
+
+    int_32 xlen = sio->length - sio->position;
+
+    if (xlen == 0)
+    {
+        status->code = d9c_ready_write;
+    }
+    else
+    {
+        if (xlen > 0x1000) xlen = 0x1000;
+
+        struct d9r_tag_metadata *md =
+                d9r_tag_metadata
+                (io, d9r_write (io, status->fid, noff, xlen,
+                 (int_8 *)(sio->buffer + sio->position)));
+
+        if (md != (struct d9r_tag_metadata *)0)
+        {
+            md->aux = (void *)status;
+        }
+
+        status->code = d9c_ready_write_working;
+    }
+}
+
+static void d9c_write_on_read (struct io *f, void *aux)
+{
+    struct d9c_wx *wx = (struct d9c_wx *)aux;
+
+    if (wx->status->code == d9c_ready_write)
+    {
+        invoke_write (wx->io, wx->status, 0);
+    }
+}
+
+static void d9c_write_on_close (struct io *f, void *aux)
+{
+    struct d9c_wx *wx = (struct d9c_wx *)aux;
+    struct d9c_tag_status *status = wx->status;
+    struct d9r_io *io = wx->io;
+
+    status->code = d9c_closing_write;
+
+    struct d9r_tag_metadata *md =
+            d9r_tag_metadata (io, d9r_clunk (io, status->fid));
+
+    if (md != (struct d9r_tag_metadata *)0)
+    {
+        md->aux = (void *)status;
+    }
+}
 
 static void Rattach (struct d9r_io *io, int_16 tag, struct d9r_qid qid)
 {
@@ -171,29 +239,7 @@ static void Rwrite  (struct d9r_io *io, int_16 tag, int_32 count)
 
     if (md->aux != (void *)0)
     {
-        struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
-        status->offset += (int_64)count;
-        int_64 noff = status->offset;
-        struct io *sio = status->io;
-
-        sio->position += count;
-
-        int_32 xlen = sio->length - sio->position;
-
-        if (xlen != 0)
-        {
-            if (xlen > 0x1000) xlen = 0x1000;
-
-            struct d9r_tag_metadata *md =
-                    d9r_tag_metadata
-                        (io, d9r_write (io, status->fid, noff, xlen,
-                         (int_8 *)(sio->buffer + sio->position)));
-
-            if (md != (struct d9r_tag_metadata *)0)
-            {
-                md->aux = (void *)status;
-            }
-        }
+        invoke_write (io, (struct d9c_tag_status *)(md->aux), count);
     }
 }
 
@@ -212,8 +258,28 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
                 status->code = d9c_ready_read;
 
                 Rread (io, tag, 0, (int_8 *)0);
+
+                break;
+
             case d9c_opening_write:
                 status->code = d9c_ready_write;
+
+                struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
+
+                if (md->aux != (void *)0)
+                {
+                    struct memory_pool pool
+                            = MEMORY_POOL_INITIALISER
+                                (sizeof(struct memory_pool));
+
+                    struct d9c_wx *wx = (struct d9c_wx *)get_pool_mem (&pool);
+                    if (wx != (struct d9c_wx *)0)
+                    {
+                        multiplex_add_io
+                                (status->io, d9c_write_on_read,
+                                 d9c_write_on_close, (void *)wx);
+                    }
+                }
 
                 Rwrite (io, tag, 0);
 
@@ -263,17 +329,35 @@ static void Rerror  (struct d9r_io *io, int_16 tag, const char *string, int_16 c
     }
 }
 
-/*
+static void Rclunk  (struct d9r_io *io, int_16 tag)
+{
+    struct d9r_tag_metadata *md = d9r_tag_metadata (io, tag);
 
+    if (md->aux != (void *)0)
+    {
+        struct d9c_tag_status *mds = (struct d9c_tag_status *)(md->aux);
+
+        switch (mds->code)
+        {
+            case d9c_closing_write:
+            {
+                kill_fid (io, mds->fid);
+            }
+
+            default:
+                break;
+        }
+    }
+}
+
+/*
 static void Rflush  (struct d9r_io *, int_16);
 static void Rcreate (struct d9r_io *, int_16, struct d9r_qid, int_32);
-static void Rclunk  (struct d9r_io *, int_16);
 static void Rremove (struct d9r_io *, int_16);
 static void Rstat   (struct d9r_io *, int_16, int_16, int_32,
            struct d9r_qid, int_32, int_32, int_32, int_64, char *,
            char *, char *, char *, char *);
 static void Rwstat  (struct d9r_io *, int_16);
-
 */
 
 void multiplex_d9c ()
@@ -321,6 +405,7 @@ void initialise_io
     io->Ropen   = Ropen;
     io->Rread   = Rread;
     io->Rwrite  = Rwrite;
+    io->Rclunk  = Rclunk;
 /*    io->Rstat   = Rstat;
     io->Rcreate = Rcreate;
     io->Rstat   = Rstat;
