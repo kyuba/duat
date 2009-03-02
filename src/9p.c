@@ -1368,7 +1368,7 @@ int_16 d9r_walk    (struct d9r_io *io, int_32 fid, int_32 newfid,
 
         while (path[i][len]) len++;
         le[i]  = len;
-        ol    += 1 + len;
+        ol    += len;
 
         i++;
     }

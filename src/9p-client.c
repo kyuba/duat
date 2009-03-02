@@ -217,7 +217,11 @@ static void Rread   (struct d9r_io *io, int_16 tag, int_32 count, int_8 *data)
         struct d9c_tag_status *status = (struct d9c_tag_status *)(md->aux);
         int_64 noff = status->offset + (int_64)count;
 
-        if (count != 0)
+        if (count == 0)
+        {
+            multiplex_del_io (status->io);
+        }
+        else
         {
             io_write (status->io, (const char *)data, count);
         }
@@ -257,7 +261,15 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
             case d9c_opening_read:
                 status->code = d9c_ready_read;
 
-                Rread (io, tag, 0, (int_8 *)0);
+                md = d9r_tag_metadata (io, d9r_read (io, status->fid, 0,
+                                                        0x1000));
+
+                if (md != (struct d9r_tag_metadata *)0)
+                {
+                    md->aux = (void *)status;
+                }
+
+/*                Rread (io, tag, 0, (int_8 *)0);*/
 
                 break;
 
@@ -509,17 +521,23 @@ static struct io *io_open_9p
     int i = 0, j = 0;
     int_32 fid = find_free_fid (io9);
 
+    while (path[0] == '/')
+    {
+        path++;
+    }
+
     while (path[i])
     {
         if (path[i] == '/') j++;
         i++;
     }
 
-    if (i > 0)
+    status->fid = fid;
+    status->io  = io;
+
+    if (j > 0)
     {
         j++;
-        status->fid = fid;
-        status->io  = io;
 
         char  pathn[i];
         char *pathx[j];
@@ -539,6 +557,7 @@ static struct io *io_open_9p
                 pathn[i] = path[i];
             }
         }
+        j++;
         pathn[i] = (char)0;
 
         struct d9r_tag_metadata *md =
@@ -552,8 +571,8 @@ static struct io *io_open_9p
     else
     {
         struct d9r_tag_metadata *md =
-                d9r_tag_metadata (io9, d9r_walk (io9, ROOT_FID, fid, 0,
-                                                 (char **)0));
+                d9r_tag_metadata (io9, d9r_walk (io9, ROOT_FID, fid, 1,
+                                                 (char **)&path));
 
         if (md != (struct d9r_tag_metadata *)0)
         {

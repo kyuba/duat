@@ -65,8 +65,6 @@ static void on_connect (struct d9r_io *io, void *aux)
 {
     struct io *n;
 
-    sx_write (stdio, make_symbol ("connected"));
-
     switch (i_op)
     {
         case op_cat:
