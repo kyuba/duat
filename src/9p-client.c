@@ -308,21 +308,13 @@ static void Rerror  (struct d9r_io *io, int_16 tag, const char *string, int_16 c
     if (md->aux != (void *)0)
     {
         struct d9c_tag_status *mds = (struct d9c_tag_status *)(md->aux);
+        struct d9c_status *status = (struct d9c_status *)(io->aux);
 
         switch (mds->code)
         {
             case d9c_attaching:
-            {
-                struct d9c_status *status = (struct d9c_status *)(io->aux);
-
                 status->code = d9c_error;
-
-                if (status->error != (void *)0)
-                {
-                    status->error (io, string, status->aux);
-                }
                 break;
-            }
             case d9c_walking_read:
             case d9c_walking_create:
             case d9c_walking_write:
@@ -330,13 +322,16 @@ static void Rerror  (struct d9r_io *io, int_16 tag, const char *string, int_16 c
             case d9c_opening_write:
             case d9c_ready_read:
             case d9c_ready_write:
-            {
                 io_finish (mds->io);
                 kill_fid (io, mds->fid);
-            }
 
             default:
                 break;
+        }
+
+        if (status->error != (void *)0)
+        {
+            status->error (io, string, status->aux);
         }
     }
 }
@@ -571,8 +566,10 @@ static struct io *io_open_9p
     else
     {
         struct d9r_tag_metadata *md =
-                d9r_tag_metadata (io9, d9r_walk (io9, ROOT_FID, fid, 1,
-                                                 (char **)&path));
+            d9r_tag_metadata (io9,
+                ((path[0] == 0) ? d9r_walk (io9, ROOT_FID, fid, 0, (char **)0) :
+                                  d9r_walk (io9, ROOT_FID, fid, 1,
+                                            (char **)&path)));
 
         if (md != (struct d9r_tag_metadata *)0)
         {

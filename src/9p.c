@@ -402,7 +402,7 @@ int_16 d9r_prepare_stat_buffer
     return sslen;
 }
 
-void d9r_parse_stat_buffer
+int_32 d9r_parse_stat_buffer
         (struct d9r_io *io, int_32 slen, int_8 *b, int_16 *type,
          int_32 *dev, struct d9r_qid *qid, int_32 *mode, int_32 *atime,
          int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
@@ -411,10 +411,10 @@ void d9r_parse_stat_buffer
     int_16 sl;
     int_32 i;
 
-    if (slen < 43) return;
+    if (slen < 43) return (int_32)0;
     sl = popw (b);
 
-    if (slen < sl) return;
+    if (slen < sl) return (int_32)0;
 
     *type        = popw (b + 2);
     *dev         = popl (b + 4);
@@ -433,7 +433,7 @@ void d9r_parse_stat_buffer
     *muid        = pop_string(b, &i, (int_32)sl);
 
     if (io->version == d9r_version_9p2000_dot_u) {
-        if (slen < (i + 2)) return;
+        if (slen < (i + 2)) return (int_32)0;
         *ext = pop_string(b, &i, (int_32)sl);
 
         if (slen > (i + 12)) {
@@ -452,6 +452,8 @@ void d9r_parse_stat_buffer
             }
         }
     }
+
+    return (int_32)sl;
 }
 
 static void register_tag (struct d9r_io *io, int_16 tag) {

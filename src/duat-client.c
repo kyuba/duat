@@ -51,8 +51,35 @@ static int print_help ()
 
 static void on_read (struct io *io, void *aux)
 {
-    io_write (stdout, io->buffer + io->position, io->length - io->position);
-    io->position = io->length;
+    if (i_op == op_cat)
+    {
+        io_write (stdout, io->buffer + io->position, io->length - io->position);
+        io->position = io->length;
+    }
+    else
+    {
+        static unsigned int estats = 0;
+
+        struct d9r_qid qid;
+        int_16 type;
+        int_32 dev, mode, atime, mtime, rp, rd;
+        int_64 length;
+        char *name, *uid, *gid, *muid, *ex;
+
+        while (estats > 0)
+        {
+            while (((rd = (io->length - io->position)) > 0) &&
+                   ((rp = d9r_parse_stat_buffer
+                              ((struct d9r_io *)aux, rd,
+                               (int_8 *)io->buffer + io->position, &type, &dev,
+                               &qid, &mode, &atime, &mtime, &length, &name,
+                               &uid, &gid, &muid, &ex)) > 0))
+            {
+                sx_write (stdio, make_string (name));
+                io->position += rp;
+            }
+        }
+    }
 }
 
 static void on_close (struct io *io, void *aux)
@@ -68,18 +95,17 @@ static void on_connect (struct d9r_io *io, void *aux)
     switch (i_op)
     {
         case op_cat:
+        case op_ls:
             n = io_open_read_9p (io, i_path);
             break;
 //        case op_write:
 /*            n = io_open_write_9p (io, i_path);*/
 //            break;
-//        case op_ls:
-//            break;
         default:
             cexit (4);
     }
 
-    multiplex_add_io (n, on_read, on_close, (void *)0);
+    multiplex_add_io (n, on_read, on_close, (void *)io);
 }
 
 static void on_error (struct d9r_io *io, const char *error, void *aux)
@@ -91,7 +117,7 @@ static void on_error (struct d9r_io *io, const char *error, void *aux)
 
 int cmain()
 {
-    sexpr i_socket = sx_false;
+    char *i_socket = (char *)0;
     stdio = sx_open_stdio();
 
     stdout = io_open (1);
@@ -113,7 +139,7 @@ int cmain()
                     case 's':
                         if (curie_argv[xn] != (char *)0)
                         {
-                            i_socket = make_string(curie_argv[xn]);
+                            i_socket = curie_argv[xn];
                             xn++;
                         }
                         break;
@@ -171,13 +197,13 @@ int cmain()
         }
     }
 
-    if (!stringp(i_socket) || (i_op == op_nop) || (i_path == (char *)0))
+    if ((i_socket == (char *)0) || (i_op == op_nop) || (i_path == (char *)0))
     {
         return 2;
     }
 
     multiplex_add_d9c_socket
-            (sx_string (i_socket), on_connect, on_error, (void *)0);
+            (i_socket, on_connect, on_error, (void *)0);
     multiplex_add_io_no_callback (stdout);
     multiplex_add_sexpr (stdio, (void *)0, (void *)0);
 

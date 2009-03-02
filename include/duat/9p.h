@@ -535,8 +535,10 @@ int_16 d9r_prepare_stat_buffer
  *  \param[out] gid    The file's group.
  *  \param[out] muid   The name of the user who last modified the file.
  *  \param[out] ex     9P2000.u extension field.
+ *  \return The number of bytes of data the buffer contained.
+ *          0 for a bad buffer.
  */
-void d9r_parse_stat_buffer
+int_32 d9r_parse_stat_buffer
         (struct d9r_io *io, int_32 blength, int_8 *buffer, int_16 *type,
          int_32 *dev, struct d9r_qid *qid, int_32 *mode, int_32 *atime,
          int_32 *mtime, int_64 *length, char **name, char **uid, char **gid,
