@@ -66,8 +66,19 @@ static void on_read (struct io *io, void *aux)
         int_64 length;
         char *name, *uid, *gid, *muid, *ex;
 
-        while (estats > 0)
-        {
+        do {
+            if (estats == 0)
+            {
+                if ((io->length - io->position) > 2)
+                {
+                    int_32 p = io->position;
+
+                    estats = ((((int_8 *)io->buffer)[p+1]) << 8)
+                           +  (((int_8 *)io->buffer)[p]);
+
+                    io->position += 2;
+                }
+            } else
             while (((rd = (io->length - io->position)) > 0) &&
                    ((rp = d9r_parse_stat_buffer
                               ((struct d9r_io *)aux, rd,
@@ -78,7 +89,7 @@ static void on_read (struct io *io, void *aux)
                 sx_write (stdio, make_string (name));
                 io->position += rp;
             }
-        }
+        } while (estats > 0);
     }
 }
 
