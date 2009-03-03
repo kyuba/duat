@@ -412,7 +412,7 @@ int_32 d9r_parse_stat_buffer
     int_32 i;
 
     if (slen < 43) return (int_32)0;
-    sl = popw (b);
+    sl = popw (b) + 2;
 
     if (slen < sl) return (int_32)0;
 

@@ -347,10 +347,7 @@ static void Rclunk  (struct d9r_io *io, int_16 tag)
         switch (mds->code)
         {
             case d9c_closing_write:
-            {
                 kill_fid (io, mds->fid);
-            }
-
             default:
                 break;
         }

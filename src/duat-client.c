@@ -49,48 +49,31 @@ static int print_help ()
     return 1;
 }
 
+static void on_read_ls (struct io *io, void *aux)
+{
+    struct d9r_qid qid;
+    int_16 type;
+    int_32 dev, mode, atime, mtime, rp;
+    int_64 length;
+    int rd;
+    char *name, *uid, *gid, *muid, *ex;
+
+    while (((rd = (io->length - io->position)) > 0) &&
+           ((rp = d9r_parse_stat_buffer
+                      ((struct d9r_io *)aux, rd,
+                       (int_8 *)io->buffer + io->position, &type,
+                       &dev, &qid, &mode, &atime, &mtime, &length,
+                       &name, &uid, &gid, &muid, &ex)) > 0))
+    {
+        sx_write (stdio, make_string (name));
+        io->position += rp;
+    }
+}
+
 static void on_read (struct io *io, void *aux)
 {
-    if (i_op == op_cat)
-    {
-        io_write (stdout, io->buffer + io->position, io->length - io->position);
-        io->position = io->length;
-    }
-    else
-    {
-        static unsigned int estats = 0;
-
-        struct d9r_qid qid;
-        int_16 type;
-        int_32 dev, mode, atime, mtime, rp, rd;
-        int_64 length;
-        char *name, *uid, *gid, *muid, *ex;
-
-        do {
-            if (estats == 0)
-            {
-                if ((io->length - io->position) > 2)
-                {
-                    int_32 p = io->position;
-
-                    estats = ((((int_8 *)io->buffer)[p+1]) << 8)
-                           +  (((int_8 *)io->buffer)[p]);
-
-                    io->position += 2;
-                }
-            } else
-            while (((rd = (io->length - io->position)) > 0) &&
-                   ((rp = d9r_parse_stat_buffer
-                              ((struct d9r_io *)aux, rd,
-                               (int_8 *)io->buffer + io->position, &type, &dev,
-                               &qid, &mode, &atime, &mtime, &length, &name,
-                               &uid, &gid, &muid, &ex)) > 0))
-            {
-                sx_write (stdio, make_string (name));
-                io->position += rp;
-            }
-        } while (estats > 0);
-    }
+    io_write (stdout, io->buffer + io->position, io->length - io->position);
+    io->position = io->length;
 }
 
 static void on_close (struct io *io, void *aux)
@@ -106,8 +89,12 @@ static void on_connect (struct d9r_io *io, void *aux)
     switch (i_op)
     {
         case op_cat:
+            n = io_open_read_9p (io, i_path);
+            multiplex_add_io (n, on_read, on_close, (void *)io);
+            break;
         case op_ls:
             n = io_open_read_9p (io, i_path);
+            multiplex_add_io (n, on_read_ls, on_close, (void *)io);
             break;
 //        case op_write:
 /*            n = io_open_write_9p (io, i_path);*/
@@ -115,8 +102,6 @@ static void on_connect (struct d9r_io *io, void *aux)
         default:
             cexit (4);
     }
-
-    multiplex_add_io (n, on_read, on_close, (void *)io);
 }
 
 static void on_error (struct d9r_io *io, const char *error, void *aux)
