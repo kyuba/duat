@@ -281,10 +281,12 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
                 if (md->aux != (void *)0)
                 {
                     struct memory_pool pool
-                            = MEMORY_POOL_INITIALISER
-                                (sizeof(struct memory_pool));
+                            = MEMORY_POOL_INITIALISER (sizeof(struct d9c_wx));
 
                     struct d9c_wx *wx = (struct d9c_wx *)get_pool_mem (&pool);
+                    wx->io = io;
+                    wx->status = status;
+
                     if (wx != (struct d9c_wx *)0)
                     {
                         multiplex_add_io
@@ -322,6 +324,7 @@ static void Rerror  (struct d9r_io *io, int_16 tag, const char *string, int_16 c
             case d9c_opening_write:
             case d9c_ready_read:
             case d9c_ready_write:
+            case d9c_ready_write_working:
                 io_finish (mds->io);
                 kill_fid (io, mds->fid);
 

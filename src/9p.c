@@ -1305,7 +1305,7 @@ int_16 d9r_auth    (struct d9r_io *io, int_32 afid, char *uname,
 
     afid      = tolel (afid);
 
-    collect_header (out, 4 + 2 + 2 + uname_len + aname_len, Tattach, otag);
+    collect_header (out, 4 + 2 + 2 + uname_len + aname_len, Tauth, otag);
 
     io_collect (out, (void *)&afid,      4);
 
@@ -1522,7 +1522,7 @@ int_16 d9r_write   (struct d9r_io *io, int_32 fid, int_64 offset,
     fid       = tolel (fid);
     offset    = toleq (offset);
 
-    collect_header (out, 4 + count, Rwrite, otag);
+    collect_header (out, 4 + count, Twrite, otag);
 
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&offset,    8);
