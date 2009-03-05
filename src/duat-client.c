@@ -37,15 +37,11 @@ enum op
     op_cat,
     op_ls,
     op_write,
-    op_direct_write,
     op_create,
-    op_direct_create
 };
 
 static char *i_path           = (char *)0;
 static char *i_file           = (char *)0;
-static char *i_data           = (char *)0;
-static int   i_data_length    = 0;
 static enum op i_op           = op_nop;
 static struct io *stdout      = (struct io *)0;
 static struct io *stdin       = (struct io *)0;
@@ -125,19 +121,9 @@ static void on_connect (struct d9r_io *io, void *aux)
             n = io_open_write_9p (io, i_path);
             multiplex_add_io (stdin, on_read_stdin, on_close_stdin, (void *)n);
             break;
-        case op_direct_write:
-            n = io_open_write_9p (io, i_path);
-            io_write (n, i_data, i_data_length);
-            multiplex_add_io (stdin, (void *)0, on_close_stdin, (void *)n);
-            break;
         case op_create:
             n = io_open_create_9p (io, i_path, i_file, 0666);
             multiplex_add_io (stdin, on_read_stdin, on_close_stdin, (void *)n);
-            break;
-        case op_direct_create:
-            n = io_open_create_9p (io, i_path, i_file, 0666);
-            io_write (n, i_data, i_data_length);
-            multiplex_add_io (stdin, (void *)0, on_close_stdin, (void *)n);
             break;
         default:
             cexit (4);
@@ -233,22 +219,6 @@ int cmain()
                         break;
                     }
                     return 13;
-                case 'x':
-                    if ((op[1] == 'w') && (op[2] == 'r') && (op[3] == 'i') &&
-                        (op[4] == 't') && (op[5] == 'e') && (op[6] == 0))
-                    {
-                        i_op = op_direct_write;
-                        break;
-                    }
-                    else
-                    if ((op[1] == 'c') && (op[2] == 'r') && (op[3] == 'e') &&
-                        (op[4] == 'a') && (op[5] == 't') && (op[6] == 'e')  &&
-                        (op[6] == 0))
-                    {
-                        i_op = op_direct_create;
-                        break;
-                    }
-                    return 14;
                 default:
                     return 15;
             }
@@ -257,25 +227,13 @@ int cmain()
         {
             i_path = curie_argv[i];
         }
-        else if (((i_op == op_create) || (i_op == op_direct_create)) &&
-                 (i_file == (char *)0))
+        else if ((i_op == op_create) && (i_file == (char *)0))
         {
             i_file = curie_argv[i];
         }
-        else
-        {
-            i_data        = curie_argv[i];
-            i_data_length = 0;
-            while (i_data[i_data_length] != (char)0)
-            {
-                i_data_length++;
-            }
-        }
     }
 
-    if ((i_socket == (char *)0) || (i_op == op_nop) || (i_path == (char *)0) ||
-        ((i_data == (char *)0) && ((i_op == op_direct_write) ||
-                                  (i_op == op_direct_create))))
+    if ((i_socket == (char *)0) || (i_op == op_nop) || (i_path == (char *)0))
     {
         return 2;
     }
