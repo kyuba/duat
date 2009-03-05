@@ -94,13 +94,14 @@ static void on_read_stdin (struct io *io, void *aux)
 
 static void on_close_stdin (struct io *io, void *aux)
 {
-    multiplex_del_io (stdout);
-    d9r_close_io (d9io);
+    multiplex_del_io  (stdout);
+    multiplex_del_d9r (d9io);
 }
 
 static void on_close (struct io *io, void *aux)
 {
-    io_close (stdout);
+    multiplex_del_io  (stdout);
+//    multiplex_del_d9r (d9io);
     cexit(0);
 }
 

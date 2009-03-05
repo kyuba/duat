@@ -176,6 +176,14 @@ void d9r_close_io (struct d9r_io *io) {
     d9r_free_resources (io);
 }
 
+void multiplex_del_d9r (struct d9r_io *io)
+{
+    multiplex_del_io (io->in);
+    multiplex_del_io (io->out);
+
+    d9r_free_resources (io);
+}
+
 void multiplex_d9r () {
     static char installed = (char)0;
 
@@ -1522,7 +1530,7 @@ int_16 d9r_write   (struct d9r_io *io, int_32 fid, int_64 offset,
     fid       = tolel (fid);
     offset    = toleq (offset);
 
-    collect_header (out, 4 + count, Twrite, otag);
+    collect_header (out, 4 + 8 + 4 + count, Twrite, otag);
 
     io_collect (out, (void *)&fid,       4);
     io_collect (out, (void *)&offset,    8);

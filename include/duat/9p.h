@@ -315,9 +315,15 @@ void d9r_close_io (struct d9r_io *);
 void multiplex_d9r ();
 
 /*! \brief Multiplex the given Connection
+ *  \param[in] io   The connection to multiplex.
  *  \param[in] data Arbitrary, user-defined data.
  */
-void multiplex_add_d9r (struct d9r_io *, void *data);
+void multiplex_add_d9r (struct d9r_io *io, void *data);
+
+/*! \brief Multiplex the given Connection
+ *  \param[in] io   The connection to kill.
+ */
+void multiplex_del_d9r (struct d9r_io *io);
 
 /*! @} */
 
