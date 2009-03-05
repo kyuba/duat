@@ -36,6 +36,7 @@ enum op
     op_nop,
     op_cat,
     op_ls,
+    op_lsd,
     op_write,
     op_create,
 };
@@ -47,6 +48,9 @@ static struct io *stdout      = (struct io *)0;
 static struct io *stdin       = (struct io *)0;
 static struct sexpr_io *stdio = (struct sexpr_io *)0;
 static struct d9r_io *d9io    = (struct d9r_io *)0;
+
+define_symbol (sym_directory, "directory");
+define_symbol (sym_file,      "file");
 
 static int print_help ()
 {
@@ -69,7 +73,23 @@ static void on_read_ls (struct io *io, void *aux)
                        &dev, &qid, &mode, &atime, &mtime, &length,
                        &name, &uid, &gid, &muid, &ex)) > 0))
     {
-        sx_write (stdio, make_string (name));
+        sexpr l = sx_end_of_list, o;
+
+        if (i_op == op_lsd)
+        {
+            l = cons (make_integer (length), cons (make_integer (mode),
+                      cons (make_integer (atime), cons (make_integer (mtime),
+                            cons (make_string (uid), cons (make_string (gid),
+                                  cons (make_string (muid),
+                                        sx_end_of_list)))))));
+        }
+
+        o = cons (((qid.type & QTDIR) ? sym_directory : sym_file),
+                  cons (make_string(name), l));
+
+        sx_write (stdio, o);
+
+        sx_destroy (o);
         io->position += rp;
     }
 }
@@ -114,6 +134,7 @@ static void on_connect (struct d9r_io *io, void *aux)
             multiplex_add_io (n, on_read, on_close, (void *)io);
             break;
         case op_ls:
+        case op_lsd:
             n = io_open_read_9p  (io, i_path);
             multiplex_add_io (n, on_read_ls, on_close, (void *)io);
             break;
@@ -183,10 +204,18 @@ int cmain()
             switch (op[0])
             {
                 case 'l':
-                    if ((op[1] == 's') && (op[2] == 0))
+                    if (op[1] == 's')
                     {
-                        i_op = op_ls;
-                        break;
+                        if (op[2] == 0)
+                        {
+                            i_op = op_ls;
+                            break;
+                        }
+                        else if ((op[2] == 'd') && (op[3] == 0))
+                        {
+                            i_op = op_lsd;
+                            break;
+                        }
                     }
                     return 10;
                 case 'c':
