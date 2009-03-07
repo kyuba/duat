@@ -26,6 +26,16 @@
  * THE SOFTWARE.
 */
 
+/*! \defgroup Duat9PServer 9P2000(.u) Server
+ *  \ingroup Duat9P
+ *
+ *  @{
+ */
+
+/*! \file
+ *  \brief Duat 9P2000(.u) Server Header
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,7 +43,6 @@ extern "C" {
 #ifndef DUAT_9P_SERVER_H
 #define DUAT_9P_SERVER_H
 
-#include <duat/9p.h>
 #include <duat/filesystem.h>
 
 void multiplex_d9s ();
@@ -46,3 +55,5 @@ void multiplex_add_d9s_stdio (struct dfs *fs);
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */

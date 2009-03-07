@@ -26,15 +26,21 @@
  * THE SOFTWARE.
 */
 
+/*! \defgroup DuatVFS Virtual Filesystem
+ *
+ *  @{
+ */
+
+/*! \file
+ *  \brief Duat Virtual Filesystem Header
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifndef DUAT_FILESYSTEM_H
 #define DUAT_FILESYSTEM_H
-
-#include <curie/int.h>
-#include <curie/tree.h>
 
 #include <duat/9p.h>
 
@@ -171,3 +177,5 @@ void dfs_update_ids();
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */

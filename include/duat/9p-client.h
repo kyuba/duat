@@ -26,6 +26,16 @@
  * THE SOFTWARE.
 */
 
+/*! \defgroup Duat9PClient 9P2000(.u) Client
+ *  \ingroup Duat9P
+ *
+ *  @{
+ */
+
+/*! \file
+ *  \brief Duat 9P2000(.u) Client Header
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -76,3 +86,5 @@ struct io *d9c_stat
 #ifdef __cplusplus
 }
 #endif
+
+/*! @} */
