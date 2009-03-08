@@ -45,29 +45,78 @@ extern "C" {
 
 #include <duat/9p.h>
 
+/*! \brief Initialise 9P Client Multiplexer */
 void multiplex_d9c ();
 
+/*! \brief Open Client Connection (with two I/O structures)
+ *  \param[in]     in     The input structure.
+ *  \param[in]     out    The output structure.
+ *  \param[in,out] on_attach Callback when the connection is established.
+ *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in]     aux       Auxiliary data to pass to the callbacks.
+ */
 void multiplex_add_d9c_io
-        (struct io *, struct io *,
-         void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, const char *, void *),
-         void *);
-void multiplex_add_d9c_socket
-        (const char *,
-         void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, const char *, void *),
-         void *);
-void multiplex_add_d9c_stdio
-        (void (*) (struct d9r_io *, void *),
-         void (*) (struct d9r_io *, const char *, void *),
-         void *);
+        (struct io *in, struct io *out,
+         void (*on_attach) (struct d9r_io *, void *),
+         void (*on_error) (struct d9r_io *, const char *, void *),
+         void *aux);
 
+/*! \brief Open Client Connection (on a Socket)
+ *  \param[in]     socket    The socket to serve on.
+ *  \param[in,out] on_attach Callback when the connection is established.
+ *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in]     aux       Auxiliary data to pass to the callbacks.
+ */
+void multiplex_add_d9c_socket
+        (const char *socket,
+         void (*on_attach) (struct d9r_io *, void *),
+         void (*on_error) (struct d9r_io *, const char *, void *),
+         void *aux);
+
+/*! \brief Open Client Connection (on Standard I/O)
+ *  \param[in,out] on_attach Callback when the connection is established.
+ *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in]     aux       Auxiliary data to pass to the callbacks.
+ */
+void multiplex_add_d9c_stdio
+        (void (*on_attach) (struct d9r_io *, void *),
+         void (*on_error) (struct d9r_io *, const char *, void *),
+         void *aux);
+
+/*! \brief Open File for Reading over 9P.
+ *  \param[in,out] io   The 9P connection to open a file on.
+ *  \param[in]     path The file to open.
+ *  \return New File I/O structure.
+ *
+ *  You should always use the multiplexer to handle the resulting I/O structure,
+ *  direct methods may not work properly.
+ */
 struct io *io_open_read_9p
-        (struct d9r_io *io, const char *);
+        (struct d9r_io *io, const char *path);
+
+/*! \brief Open File for Writing over 9P.
+ *  \param[in,out] io   The 9P connection to open a file on.
+ *  \param[in]     path The file to open.
+ *  \return New File I/O structure.
+ *
+ *  You should always use the multiplexer to handle the resulting I/O structure,
+ *  direct methods may not work properly.
+ */
 struct io *io_open_write_9p
-        (struct d9r_io *io, const char *);
+        (struct d9r_io *io, const char *path);
+
+/*! \brief Create File and open for Writing over 9P.
+ *  \param[in,out] io   The 9P connection to open a file on.
+ *  \param[in]     path The directorey to create the file in.
+ *  \param[in]     file The file to create.
+ *  \param[in]     mode The mode to create the file with.
+ *  \return New File I/O structure.
+ *
+ *  You should always use the multiplexer to handle the resulting I/O structure,
+ *  direct methods may not work properly.
+ */
 struct io *io_open_create_9p
-        (struct d9r_io *io, const char *, const char *, int);
+        (struct d9r_io *io, const char *path, const char *file, int mode);
 
 #if 0
 

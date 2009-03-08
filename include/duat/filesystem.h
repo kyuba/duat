@@ -28,6 +28,8 @@
 
 /*! \defgroup DuatVFS Virtual Filesystem
  *
+ *  The virtual filesystem is used when serving data with the 9p-server code.
+ *
  *  @{
  */
 
@@ -44,96 +46,216 @@ extern "C" {
 
 #include <duat/9p.h>
 
+/*! \brief VFS Flag: Set User ID */
 #define DFSSETUID    ((int_32)0x00080000)
+/*! \brief VFS Flag: Set Group ID */
 #define DFSSETGID    ((int_32)0x00040000)
+/*! \brief VFS Flag: User's allowed to read file */
 #define DFSUREAD     ((int_32)0x00000100)
+/*! \brief VFS Flag: User's allowed to write file */
 #define DFSUWRITE    ((int_32)0x00000080)
+/*! \brief VFS Flag: User's allowed to execute file */
 #define DFSUEXEC     ((int_32)0x00000040)
+/*! \brief VFS Flag: Group's allowed to read */
 #define DFSGREAD     ((int_32)0x00000020)
+/*! \brief VFS Flag: Group's allowed to write */
 #define DFSGWRITE    ((int_32)0x00000010)
+/*! \brief VFS Flag: Group's allowed to execute */
 #define DFSGEXEC     ((int_32)0x00000008)
+/*! \brief VFS Flag: Others are allowed to read */
 #define DFSOREAD     ((int_32)0x00000004)
+/*! \brief VFS Flag: Others are allowed to write */
 #define DFSOWRITE    ((int_32)0x00000002)
+/*! \brief VFS Flag: Others are allowed to execute */
 #define DFSOEXEC     ((int_32)0x00000001)
 
+/*! \brief Common Node Items */
 struct dfs_node_common {
+    /*! \brief File Type Code */
     enum {
-        dft_directory,
-        dft_file,
-        dft_symlink,
-        dft_device,
-        dft_pipe,
-        dft_socket
-    } type;
+        dft_directory, /*!< File Type: Directory */
+        dft_file,      /*!< File Type: Regular File */
+        dft_symlink,   /*!< File Type: Symbolic Link */
+        dft_device,    /*!< File Type: Device File */
+        dft_pipe,      /*!< File Type: Named Pipe */
+        dft_socket     /*!< File Type: Socket */
+    }
+    /*! \brief File Type */
+    type;
+
+    /*! \brief File Mode */
     int_32 mode;
+
+    /*! \brief Time of last Access */
     int_32 atime;
+
+    /*! \brief Time of last Modification */
     int_32 mtime;
+
+    /*! \brief Length of the File */
     int_64 length;
+
+    /*! \brief Name of the File */
     char *name;
+
+    /*! \brief Owner Name */
     char *uid;
+
+    /*! \brief Group Name */
     char *gid;
+
+    /*! \brief Last User that modified the File */
     char *muid;
 };
 
+/*! \brief VFS Node: Directory */
 struct dfs_directory {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
+
+    /*! \brief Directory Nodes */
     struct tree *nodes;
+
+    /*! \brief Parent Directory Link */
     struct dfs_directory *parent;
 };
 
+/*! \brief VFS Node: Regular File */
 struct dfs_file {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
+
+    /*! \brief File Path */
     char *path;
+
+    /*! \brief File Data Contents */
     int_8 *data;
+
+    /*! \brief Auxiliary Data */
     void *aux;
+
+    /*! \brief Callback on File Reads */
     void (*on_read)(struct d9r_io *, int_16, struct dfs_file *, int_64, int_32);
+
+    /*! \brief Callback on File Writes */
     int_32 (*on_write)(struct dfs_file *, int_64, int_32, int_8 *);
 };
 
+/*! \brief VFS Node: Symbolic Link */
 struct dfs_symlink {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
+
+    /*! \brief Symbolic Link Contents */
     char *symlink;
 };
 
+/*! \brief VFS: Device Type */
 enum dfs_device_type {
-    dfs_character_device,
-    dfs_block_device
+    dfs_character_device, /*!< Character Device */
+    dfs_block_device      /*!< Block Device */
 };
 
+/*! \brief VFS Node: Device File */
 struct dfs_device {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
+
+    /*! \brief VFS Node: Device Type */
     enum dfs_device_type type;
+
+    /*! \brief VFS Node: Majour Number */
     int_16 majour;
+
+    /*! \brief VFS Node: Minor Number */
     int_16 minor;
 };
 
+/*! \brief VFS Node: Socket File */
 struct dfs_socket {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
 };
 
+/*! \brief VFS Node: Named Pipe */
 struct dfs_pipe {
+    /*! \brief Common VFS Node Attributes */
     struct dfs_node_common c;
 };
 
+/*! \brief VFS Root Node */
 struct dfs {
+    /*! \brief VFS Root Node Pointer */
     struct dfs_directory *root;
 };
 
+/*! \brief Create VFS Root
+ *  \return The created VFS root.
+ */
 struct dfs *dfs_create ();
+
+/*! \brief Create Directory
+ *  \param[in] parent The parent directory to create the node in.
+ *  \param[in] name   The name of the node to create.
+ *  \return The created VFS node.
+ */
 struct dfs_directory *dfs_mk_directory
-        (struct dfs_directory *, char *);
+        (struct dfs_directory *parent, char *name);
+
+/*! \brief Create File
+ *  \param[in] parent   The parent directory to create the node in.
+ *  \param[in] name     The name of the node to create.
+ *  \param[in] tname    Target file name (not supported yet).
+ *  \param[in] tbuffer  Data buffer.
+ *  \param[in] tlength  Data buffer length.
+ *  \param[in] aux      Auxiliary data for the callbacks.
+ *  \param[in] on_read  Callbacks for file reads.
+ *  \param[in] on_write Callbacks for file writes.
+ *  \return The created VFS node.
+ */
 struct dfs_file *dfs_mk_file
-        (struct dfs_directory *, char *, char *, int_8 *, int_64, void *,
-         void (*)(struct d9r_io *, int_16, struct dfs_file *, int_64, int_32),
-         int_32 (*)(struct dfs_file*, int_64, int_32, int_8 *));
+        (struct dfs_directory *parent, char *name, char *tname, int_8 *tbuffer,
+         int_64 tlength, void *aux,
+         void (*on_read)(struct d9r_io *, int_16, struct dfs_file *, int_64,
+                int_32),
+         int_32 (*on_write)(struct dfs_file*, int_64, int_32, int_8 *));
+
+/*! \brief Create Symbolic Link
+ *  \param[in] parent The parent directory to create the node in.
+ *  \param[in] name   The name of the node to create.
+ *  \param[in] target Symbolic link target.
+ *  \return The created VFS node.
+ */
 struct dfs_symlink *dfs_mk_symlink
-        (struct dfs_directory *, char *, char *);
+        (struct dfs_directory *parent, char *name, char *target);
+
+/*! \brief Create Device File
+ *  \param[in] parent The parent directory to create the node in.
+ *  \param[in] name   The name of the node to create.
+ *  \param[in] type   Device file type.
+ *  \param[in] majour Device file majour number.
+ *  \param[in] minor  Device file minor number.
+ *  \return The created VFS node.
+ */
 struct dfs_device *dfs_mk_device
-        (struct dfs_directory *, char *, enum dfs_device_type, int_16, int_16);
+        (struct dfs_directory *parent, char *name, enum dfs_device_type type,
+         int_16 majour, int_16 minor);
+
+/*! \brief Create Socket
+ *  \param[in] parent The parent directory to create the node in.
+ *  \param[in] name   The name of the node to create.
+ *  \return The created VFS node.
+ */
 struct dfs_socket *dfs_mk_socket
-        (struct dfs_directory *, char *);
+        (struct dfs_directory *parent, char *name);
+
+/*! \brief Create Named Pipe
+ *  \param[in] parent The parent directory to create the node in.
+ *  \param[in] name   The name of the node to create.
+ *  \return The created VFS node.
+ */
 struct dfs_socket *dfs_mk_pipe
-        (struct dfs_directory *, char *);
+        (struct dfs_directory *parent, char *name);
 
 /*! \brief Set a User's UID
  *  \param[in] user The user whose ID to update.

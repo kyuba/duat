@@ -1,5 +1,5 @@
 ###- QUICK AND DIRTY: COMPILATION AND INSTALLATION -############################
-  You'll need curie-4, including icemake...
+  You'll need curie-7, including icemake...
 
     $ icemake -dif /usr
 

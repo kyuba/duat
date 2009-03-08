@@ -29,6 +29,8 @@
 /*! \defgroup Duat9PServer 9P2000(.u) Server
  *  \ingroup Duat9P
  *
+ *  Simple 9P server.
+ *
  *  @{
  */
 
@@ -45,10 +47,26 @@ extern "C" {
 
 #include <duat/filesystem.h>
 
+/*! \brief Initialise 9P Server Multiplexer */
 void multiplex_d9s ();
-void multiplex_add_d9s_io (struct io *, struct io *, struct dfs *);
-void multiplex_add_d9s_socket (char *, struct dfs *);
-void multiplex_add_d9s_stdio (struct dfs *fs);
+
+/*! \brief Serve a VFS Tree on two Generic IO Structures
+ *  \param[in]     in     The input structure.
+ *  \param[in]     out    The output structure.
+ *  \param[in,out] root   The filesystem root to serve.
+ */
+void multiplex_add_d9s_io (struct io *in, struct io *out, struct dfs *root);
+
+/*! \brief Serve a VFS Tree on a Socket
+ *  \param[in]     socket The socket to serve on.
+ *  \param[in,out] root   The filesystem root to serve.
+ */
+void multiplex_add_d9s_socket (char *socket, struct dfs *root);
+
+/*! \brief Serve a VFS Tree on Standard I/O
+ *  \param[in,out] root   The filesystem root to serve.
+ */
+void multiplex_add_d9s_stdio (struct dfs *root);
 
 #endif
 

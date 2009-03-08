@@ -484,8 +484,24 @@ struct d9r_fid_metadata {
 /*! \brief Retrieve FID Metadata */
 struct d9r_fid_metadata *d9r_fid_metadata (struct d9r_io *, int_32);
 
+/*! \brief Register FID
+ *  \param[in] io    The I/O structure to register the FID with.
+ *  \param[in] fid   The FID to register.
+ *  \param[in] pathc Path element count.
+ *  \param[in] path  Path elements.
+ */
 void register_fid (struct d9r_io *io, int_32 fid, int_16 pathc, char **path);
+
+/*! \brief Unregister FID
+ *  \param[in] io    The I/O structure to unregister the FID from.
+ *  \param[in] fid   The FID to unregister.
+ */
 void kill_fid (struct d9r_io *io, int_32 fid);
+
+/*! \brief Find a free FID
+ *  \param[in] io    The I/O structure to search in.
+ *  \return The first free FID that was found.
+ */
 int_32 find_free_fid (struct d9r_io *io);
 
 /*! @} */
@@ -529,18 +545,18 @@ int_16 d9r_prepare_stat_buffer
  *                      buffer.
  *  \param[in]  blength The length of the buffer to parse.
  *  \param[in]  buffer  The buffer to parse.
- *  \param[out] type   For kernel use.
- *  \param[out] dev    For kernel use.
- *  \param[out] qid    The qid of the file.
- *  \param[out] mode   File permissions and flags.
- *  \param[out] atime  Time of last access.
- *  \param[out] mtime  Time of last modification.
- *  \param[out] length The length of the file (in bytes).
- *  \param[out] name   The name of the file.
- *  \param[out] uid    The name of the file's owner.
- *  \param[out] gid    The file's group.
- *  \param[out] muid   The name of the user who last modified the file.
- *  \param[out] ex     9P2000.u extension field.
+ *  \param[out] type    For kernel use.
+ *  \param[out] dev     For kernel use.
+ *  \param[out] qid     The qid of the file.
+ *  \param[out] mode    File permissions and flags.
+ *  \param[out] atime   Time of last access.
+ *  \param[out] mtime   Time of last modification.
+ *  \param[out] length  The length of the file (in bytes).
+ *  \param[out] name    The name of the file.
+ *  \param[out] uid     The name of the file's owner.
+ *  \param[out] gid     The file's group.
+ *  \param[out] muid    The name of the user who last modified the file.
+ *  \param[out] ex      9P2000.u extension field.
  *  \return The number of bytes of data the buffer contained.
  *          0 for a bad buffer.
  */
