@@ -936,7 +936,7 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
                 i = 9;
 
                 while (r < qidc) {
-                    if ((i + 13) < length)
+                    if ((i + 13) > length)
                     {
                         kill_tag (io, tag);
                         return length;
