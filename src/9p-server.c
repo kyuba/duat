@@ -68,6 +68,10 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
     while (i < c) {
         if (d->c.type == dft_directory) {
             struct tree_node *node;
+            if (names[i][0] == 0)
+            {
+                goto ret;
+            }
             if (names[i][0] == '.')
             {
                 if (names[i][1] == 0) {
@@ -82,12 +86,14 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 
             if (node == (struct tree_node *)0)
             {
-                break;
+                d9r_reply_error (io, tag, "No such file or directory", P9_EDONTCARE);
+                return;
             }
 
             if ((d = node_get_value(node)) == (struct dfs_directory *)0)
             {
-                break;
+                d9r_reply_error (io, tag, "Internal Duat VFS issue", P9_EDONTCARE);
+                return;
             }
 
             ret:
@@ -112,6 +118,11 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
     {
         md = d9r_fid_metadata (io, afid);
         md->aux = d;
+    }
+    else
+    {
+        d9r_reply_error (io, tag, "No such file or directory", P9_EDONTCARE);
+        return;
     }
 
     d9r_reply_walk (io, tag, i, qid);
