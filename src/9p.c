@@ -673,6 +673,19 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
     int_16 tag = popw (b + 5);
     int_32 i = 7;
 
+    if ((code % 2) == 1) /* Rxxx message */
+    {
+        if (d9r_tag_metadata (io, tag) == (struct d9r_tag_metadata *)0)
+        {
+            /* reply message with unknown tag, gotta be ignored. maybe killing
+               the connection might be an even better idea, but let's keep it
+               like this for the time being.
+               unfortunately, Rerror is reserved for client errors, so we can't
+               even tell the server about this issue. */
+            return length;
+        }
+    }
+
     switch (code) {
         case Tversion:
             register_tag(io, tag);
