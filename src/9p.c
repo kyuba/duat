@@ -675,7 +675,8 @@ static unsigned int pop_message (unsigned char *b, int_32 length,
 
     if ((code % 2) == 1) /* Rxxx message */
     {
-        if (d9r_tag_metadata (io, tag) == (struct d9r_tag_metadata *)0)
+        if ((tag != NO_TAG_9P) &&
+            d9r_tag_metadata (io, tag) == (struct d9r_tag_metadata *)0)
         {
             /* reply message with unknown tag, gotta be ignored. maybe killing
                the connection might be an even better idea, but let's keep it
