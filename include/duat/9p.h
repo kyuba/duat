@@ -282,6 +282,9 @@ struct d9r_io {
     /*! \brief Callback for an incoming Rwstat Message */
     void (*Rwstat)  (struct d9r_io *, int_16);
 
+    /*! \brief Callback for when the 9P connection is closed */
+    void (*close)   (struct d9r_io *);
+
     /*! \brief Arbitrary, User-defined Metadata */
     void *aux;
 };

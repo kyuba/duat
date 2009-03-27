@@ -112,6 +112,8 @@ struct d9r_io *d9r_open_io (struct io *in, struct io *out) {
     rv->Rstat   = (void *)0;
     rv->Rwstat  = (void *)0;
 
+    rv->close   = (void *)0;
+
     rv->aux     = (void *)0;
 
     rv->version = d9r_uninitialised;
@@ -639,6 +641,11 @@ static void mx_on_read_9p (struct io *in, void *d) {
 static void mx_on_close_9p (struct io *in, void *d) {
     struct io_element *element = (struct io_element *)d;
     struct d9r_io *io = element->io;
+
+    if (io->close != (void *)0)
+    {
+        io->close (io);
+    }
 
     if (io->in != io->out)
     {

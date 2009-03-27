@@ -53,34 +53,40 @@ void multiplex_d9c ();
  *  \param[in]     out    The output structure.
  *  \param[in,out] on_attach Callback when the connection is established.
  *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in,out] on_close  Callback when the connection is terminated.
  *  \param[in]     aux       Auxiliary data to pass to the callbacks.
  */
 void multiplex_add_d9c_io
         (struct io *in, struct io *out,
          void (*on_attach) (struct d9r_io *, void *),
-         void (*on_error) (struct d9r_io *, const char *, void *),
+         void (*on_error)  (struct d9r_io *, const char *, void *),
+         void (*on_close)  (struct d9r_io *, void *),
          void *aux);
 
 /*! \brief Open Client Connection (on a Socket)
  *  \param[in]     socket    The socket to serve on.
  *  \param[in,out] on_attach Callback when the connection is established.
  *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in,out] on_close  Callback when the connection is terminated.
  *  \param[in]     aux       Auxiliary data to pass to the callbacks.
  */
 void multiplex_add_d9c_socket
         (const char *socket,
          void (*on_attach) (struct d9r_io *, void *),
-         void (*on_error) (struct d9r_io *, const char *, void *),
+         void (*on_error)  (struct d9r_io *, const char *, void *),
+         void (*on_close)  (struct d9r_io *, void *),
          void *aux);
 
 /*! \brief Open Client Connection (on Standard I/O)
  *  \param[in,out] on_attach Callback when the connection is established.
  *  \param[in,out] on_error  Callback when an error occured.
+ *  \param[in,out] on_close  Callback when the connection is terminated.
  *  \param[in]     aux       Auxiliary data to pass to the callbacks.
  */
 void multiplex_add_d9c_stdio
         (void (*on_attach) (struct d9r_io *, void *),
-         void (*on_error) (struct d9r_io *, const char *, void *),
+         void (*on_error)  (struct d9r_io *, const char *, void *),
+         void (*on_close)  (struct d9r_io *, void *),
          void *aux);
 
 /*! \brief Open File for Reading over 9P.

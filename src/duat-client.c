@@ -158,6 +158,11 @@ static void on_error (struct d9r_io *io, const char *error, void *aux)
     cexit (3);
 }
 
+static void on_d9_close (struct d9r_io *io, void *aux)
+{
+    cexit (5);
+}
+
 int cmain()
 {
     char *i_socket = (char *)0;
@@ -268,7 +273,7 @@ int cmain()
     }
 
     multiplex_add_d9c_socket
-            (i_socket, on_connect, on_error, (void *)0);
+            (i_socket, on_connect, on_error, on_d9_close, (void *)0);
     multiplex_add_io_no_callback (stdout);
 
     while (multiplex() == mx_ok);
