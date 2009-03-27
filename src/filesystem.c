@@ -35,13 +35,16 @@
 
 #define BUFFERSIZE 4096
 
-struct dfs *dfs_create () {
+struct dfs *dfs_create (void (*close)(struct d9r_io *, void *), void *aux)
+{
     static struct memory_pool pool = MEMORY_POOL_INITIALISER(sizeof (struct dfs));
     struct dfs *rv = get_pool_mem (&pool);
 
     if (rv == (struct dfs *)0) return (struct dfs *)0;
 
-    rv->root = dfs_mk_directory((struct dfs_directory *)0, "/");
+    rv->close = close;
+    rv->aux   = aux;
+    rv->root  = dfs_mk_directory((struct dfs_directory *)0, "/");
     if (rv->root == (struct dfs_directory *)0) {
         free_pool_mem (rv);
         return (struct dfs *)0;

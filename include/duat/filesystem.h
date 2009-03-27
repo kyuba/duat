@@ -187,12 +187,20 @@ struct dfs_pipe {
 struct dfs {
     /*! \brief VFS Root Node Pointer */
     struct dfs_directory *root;
+
+    /*! \brief Callback on Client Disconnects */
+    void (*close)(struct d9r_io *, void *);
+
+    /*! \brief Auxiliary Data for the Callback */
+    void *aux;
 };
 
 /*! \brief Create VFS Root
+ *  \param[in,out] close Callback on client disconnects.
+ *  \param[in]     aux   Auxiliary data for the callback.
  *  \return The created VFS root.
  */
-struct dfs *dfs_create ();
+struct dfs *dfs_create (void (*close)(struct d9r_io *, void *), void *aux);
 
 /*! \brief Create Directory
  *  \param[in] parent The parent directory to create the node in.

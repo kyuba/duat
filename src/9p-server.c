@@ -501,6 +501,16 @@ static void Twstat
     d9r_reply_wstat(io, tag); /* stub reply with 'yes' */
 }
 
+static void Cclose (struct d9r_io *io)
+{
+    struct dfs *fs = (struct dfs *)io->aux;
+
+    if (fs->close != (void *)0)
+    {
+        fs->close (io, fs->aux);
+    }
+}
+
 static void initialise_io (struct d9r_io *io, struct dfs *fs)
 {
     io->Tattach = Tattach;
@@ -511,6 +521,7 @@ static void initialise_io (struct d9r_io *io, struct dfs *fs)
     io->Tread   = Tread;
     io->Twrite  = Twrite;
     io->Twstat  = Twstat;
+    io->close   = Cclose;
     io->aux     = (void *)fs;
 
     multiplex_add_d9r (io, (void *)0);
