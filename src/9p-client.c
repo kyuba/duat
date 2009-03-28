@@ -288,6 +288,8 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
                     wx->io = io;
                     wx->status = status;
 
+                    invoke_write (io, status, 0);
+
                     if (wx != (struct d9c_wx *)0)
                     {
                         multiplex_add_io
@@ -295,8 +297,6 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
                                  d9c_write_on_close, (void *)wx);
                     }
                 }
-
-                Rwrite (io, tag, 0);
 
             default:
                 break;
