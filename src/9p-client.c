@@ -281,21 +281,7 @@ static void Ropen   (struct d9r_io *io, int_16 tag, struct d9r_qid qid,
 
                 if (md->aux != (void *)0)
                 {
-                    struct memory_pool pool
-                            = MEMORY_POOL_INITIALISER (sizeof(struct d9c_wx));
-
-                    struct d9c_wx *wx = (struct d9c_wx *)get_pool_mem (&pool);
-                    wx->io = io;
-                    wx->status = status;
-
                     invoke_write (io, status, 0);
-
-                    if (wx != (struct d9c_wx *)0)
-                    {
-                        multiplex_add_io
-                                (status->io, d9c_write_on_read,
-                                 d9c_write_on_close, (void *)wx);
-                    }
                 }
 
             default:
@@ -592,6 +578,29 @@ static struct io *io_open_9p
         {
             md->aux = (void *)status;
         }
+    }
+
+    switch (code)
+    {
+        case d9c_walking_write:
+            {
+                struct memory_pool pool
+                        = MEMORY_POOL_INITIALISER (sizeof(struct d9c_wx));
+
+                struct d9c_wx *wx = (struct d9c_wx *)get_pool_mem (&pool);
+                wx->io = io9;
+                wx->status = status;
+
+                if (wx != (struct d9c_wx *)0)
+                {
+                    multiplex_add_io
+                            (status->io, d9c_write_on_read,
+                             d9c_write_on_close, (void *)wx);
+                }
+            }
+
+            break;
+        default: break;
     }
 
     return io;
