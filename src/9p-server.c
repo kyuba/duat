@@ -36,7 +36,7 @@ static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 {
     struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
     struct dfs *fs = (struct dfs *)io->aux;
-    struct d9r_qid qid = { 0, 1, (int_64)io->aux };
+    struct d9r_qid qid = { 0, 1, (int_64)(int_pointer)io->aux };
 
     if (md != (struct d9r_fid_metadata *)0)
     {
@@ -100,7 +100,7 @@ static void Twalk (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
 
             qid[i].type    = 0;
             qid[i].version = 1;
-            qid[i].path    = (int_64)d;
+            qid[i].path    = (int_64)(int_pointer)d;
 
             i++;
         } else {
@@ -132,7 +132,7 @@ static void Tstat (struct d9r_io *io, int_16 tag, int_32 fid)
 {
     struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
     struct dfs_node_common *c = md->aux;
-    struct d9r_qid qid = { 0, 1, (int_64)c };
+    struct d9r_qid qid = { 0, 1, (int_64)(int_pointer)c };
     int_32 modex = 0;
     char *ex = (char *)0;
     char devbuffer[10];
@@ -231,7 +231,7 @@ static void Topen (struct d9r_io *io, int_16 tag, int_32 fid, int_8 mode)
 {
     struct d9r_fid_metadata *md = d9r_fid_metadata (io, fid);
     struct dfs_node_common *c = md->aux;
-    struct d9r_qid qid = { 0, 1, (int_64)c };
+    struct d9r_qid qid = { 0, 1, (int_64)(int_pointer)c };
 
     switch (c->type)
     {
@@ -268,20 +268,20 @@ static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_
     if (perm & DMDIR)
     {
         qid.type = QTDIR;
-        qid.path = (int_64)dfs_mk_directory(d, name);
+        qid.path = (int_64)(int_pointer)dfs_mk_directory(d, name);
     }
     else if (perm & DMSYMLINK)
     {
         qid.type = QTLINK;
-        qid.path = (int_64)dfs_mk_symlink(d, name, ext);
+        qid.path = (int_64)(int_pointer)dfs_mk_symlink(d, name, ext);
     }
     else if (perm & DMSOCKET)
     {
-        qid.path = (int_64)dfs_mk_socket(d, name);
+        qid.path = (int_64)(int_pointer)dfs_mk_socket(d, name);
     }
     else if (perm & DMNAMEDPIPE)
     {
-        qid.path = (int_64)dfs_mk_pipe(d, name);
+        qid.path = (int_64)(int_pointer)dfs_mk_pipe(d, name);
     }
     else if (perm & DMDEVICE)
     {
@@ -312,14 +312,14 @@ static void Tcreate (struct d9r_io *io, int_16 tag, int_32 fid, char *name, int_
             i++;
         }
 
-        qid.path = (int_64)dfs_mk_device
+        qid.path = (int_64)(int_pointer)dfs_mk_device
                 (d, name,
                  (ext[0] == 'b') ? dfs_block_device : dfs_character_device,
                   majour, minor);
     }
     else
     {
-        qid.path = (int_64)dfs_mk_file
+        qid.path = (int_64)(int_pointer)dfs_mk_file
                 (d, name, (char *)0, (int_8 *)0, 0, (void *)0, (void *)0, (void *)0);
     }
 
@@ -348,7 +348,7 @@ static void Tread_dir (struct tree_node *node, void *v)
             int_8 *bb;
             int_16 slen = 0;
             int_32 modex = 0;
-            struct d9r_qid qid = { 0, 1, (int_64)c };
+            struct d9r_qid qid = { 0, 1, (int_64)(int_pointer)c };
 
             switch (c->type)
             {
@@ -402,7 +402,7 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
                 if (md->index == 0)
                 {
                     int_8 *bb;
-                    struct d9r_qid qid = { QTDIR, 1, (int_64)c };
+                    struct d9r_qid qid = { QTDIR, 1, (int_64)(int_pointer)c };
                     int_16 slen = d9r_prepare_stat_buffer
                             (io, &bb, 0, 0, &qid, DMDIR | dir->c.mode,
                              dir->c.atime, dir->c.mtime, dir->c.length, ".",
@@ -414,7 +414,7 @@ static void Tread (struct d9r_io *io, int_16 tag, int_32 fid, int_64 offset, int
                 {
                     int_16 slen;
                     int_8 *bb;
-                    struct d9r_qid qid = { QTDIR, 1, (int_64)c };
+                    struct d9r_qid qid = { QTDIR, 1, (int_64)(int_pointer)c };
 
                     dir = dir->parent;
 
