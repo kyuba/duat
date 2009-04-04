@@ -29,6 +29,7 @@
 #include <curie/main.h>
 #include <curie/sexpr.h>
 #include <curie/multiplex.h>
+#include <curie/shell.h>
 #include <duat/9p-client.h>
 
 enum op
@@ -54,6 +55,13 @@ define_symbol (sym_file,      "file");
 
 static int print_help ()
 {
+#define help "d9c -s <address> (read|write|create|ls|lsd) <path>\n"
+    struct io *out = io_open (1);
+    if (out != (struct io *)0)
+    {
+        io_write (out, help, (sizeof (help) -1));
+    }
+
     return 1;
 }
 
@@ -269,7 +277,7 @@ int cmain()
 
     if ((i_socket == (char *)0) || (i_op == op_nop) || (i_path == (char *)0))
     {
-        return 2;
+        return print_help ();
     }
 
     multiplex_add_d9c_socket
