@@ -7,7 +7,11 @@
   (code "9p" "9p-server" "filesystem" "9p-client")
 
   (headers
-        "9p" "9p-server" "filesystem" "9p-client"))
+        "9p" "9p-server" "filesystem" "9p-client")
+
+;  (documentation
+;        "description")
+)
 
 (programme "d9c" libcurie
   (name "d9c")
@@ -17,4 +21,7 @@
 
   (libraries "duat")
 
-  (code "duat-client"))
+  (code "duat-client")
+
+  (documentation
+        "d9c"))

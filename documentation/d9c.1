@@ -1,0 +1,46 @@
+.TH D9C 1 "APRIL 2009" Duat "Duat Users Manual"
+
+.SH NAME
+d9c \- duat 9p client
+
+.SH SYNOPSIS
+.B duat -h|--help
+
+.BI "d9c -s " socket " ls[d] " path
+
+.BI "d9c -s " socket " read " path
+
+.BI "d9c -s " socket " write " path
+
+.BI "d9c -s " socket " create " path
+
+.SH DESCRIPTION
+.B d9c
+is used to connect to a 9p server using duat. The programme can be used to
+perform trivial communication with a 9p server.
+
+.SH OPTIONS
+.IP "-h, --help"
+Print a short summary of the options, then exit.
+
+.IP "-s socket"
+The 9P socket to connect to.
+
+.IP "read"
+Read raw data from a file, until the file is depleted or d9c gets killed.
+
+.IP "write"
+Write raw data from stdin to the file. Use CTRL+D or CTRL+C to disconnect (and
+close the file)
+
+.IP "create"
+Same as the write command, but create the file first.
+
+.IP "ls"
+Read from a directory and display its contents.
+
+.IP "lsd"
+Same as ls, but show more details.
+
+.SH AUTHOR
+Magnus Deininger <magnus.deininger@student.uni-tuebingen.de>
