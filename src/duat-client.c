@@ -29,6 +29,7 @@
 #include <curie/main.h>
 #include <curie/sexpr.h>
 #include <curie/multiplex.h>
+#include <curie/memory.h>
 #include <curie/shell.h>
 #include <duat/9p-client.h>
 
@@ -174,6 +175,8 @@ static void on_d9_close (struct d9r_io *io, void *aux)
 int cmain()
 {
     char *i_socket = (char *)0;
+
+    terminate_on_allocation_errors();
 
     stdin          = io_open (0);
     stdin->type    = iot_read;
