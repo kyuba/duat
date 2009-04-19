@@ -1,5 +1,5 @@
 ###- QUICK AND DIRTY: COMPILATION AND INSTALLATION -############################
-  You'll need curie-7, including icemake...
+  You'll need curie-8, including icemake...
 
     $ icemake -dif /usr
 
@@ -31,7 +31,7 @@ Compilation:
 Installation:
   use this command to install regularly (for example into /usr, in the example):
 
-    $ icemake -dif /some/prefix
+    $ icemake -dif /usr
 
 Linking against libduat without using icemake:
   Use pkg-config to retrieve the flags needed to link with libduat:
