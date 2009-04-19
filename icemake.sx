@@ -1,7 +1,7 @@
 (library "duat" libcurie
   (name "Duat")
   (description "9P2000 I/O library")
-  (version "6")
+  (version "7")
   (url "http://kyuba.org/")
 
   (code "9p" "9p-server" "filesystem" "9p-client")
