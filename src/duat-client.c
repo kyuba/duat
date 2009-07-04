@@ -98,7 +98,6 @@ static void on_read_ls (struct io *io, void *aux)
 
         sx_write (stdio, o);
 
-        sx_destroy (o);
         io->position += rp;
     }
 }
