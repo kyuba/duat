@@ -1495,7 +1495,7 @@ int_16 d9r_create  (struct d9r_io *io, int_32 fid, const char *name,
     if ((io->version == d9r_version_9p2000_dot_u) &&
         (ext != (char *)0))
     {
-        while (ext[extlen]) len++;
+        while (ext[extlen]) extlen++;
     }
 
     fid         = tolel (fid);
