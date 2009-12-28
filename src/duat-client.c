@@ -175,8 +175,6 @@ int cmain()
 {
     char *i_socket = (char *)0;
 
-    terminate_on_allocation_errors();
-
     stdin          = io_open (0);
     stdin->type    = iot_read;
     stdout         = io_open (1);

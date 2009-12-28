@@ -199,21 +199,21 @@ static struct tree dfs_group_map = TREE_INITIALISER;
 void   dfs_update_user  (char *user, int_32 id) {
     struct tree_node *node = tree_get_node_string (&dfs_user_map, user);
     if (node != (struct tree_node *)0) {
-        node_get_value(node) = (void *)(int_pointer)id;
-    } else {
-        tree_add_node_string_value(&dfs_user_map, user,
-                                    (void *)(int_pointer)id);
+        tree_remove_node_string (&dfs_user_map, user);
     }
+
+    tree_add_node_string_value(&dfs_user_map, user,
+                                (void *)(int_pointer)id);
 }
 
 void   dfs_update_group (char *group, int_32 id) {
     struct tree_node *node = tree_get_node_string (&dfs_group_map, group);
     if (node != (struct tree_node *)0) {
-        node_get_value(node) = (void *)(int_pointer)id;
-    } else {
-        tree_add_node_string_value(&dfs_group_map, group,
-                                    (void *)(int_pointer)id);
+        tree_remove_node_string (&dfs_group_map, group);
     }
+
+    tree_add_node_string_value(&dfs_group_map, group,
+                                (void *)(int_pointer)id);
 }
 
 int_32 dfs_get_user     (char *user) {
