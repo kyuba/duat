@@ -28,9 +28,9 @@
 
 #include <curie/tree.h>
 #include <curie/memory.h>
-#include <curie/immutable.h>
 #include <curie/io.h>
 #include <curie/multiplex.h>
+#include <sievert/immutable.h>
 #include <duat/filesystem.h>
 
 #define BUFFERSIZE 4096

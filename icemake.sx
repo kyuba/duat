@@ -4,6 +4,8 @@
   (version "7")
   (url "http://kyuba.org/")
 
+  (libraries "sievert")
+
   (code "9p" "9p-server" "filesystem" "9p-client")
 
   (headers
@@ -19,7 +21,7 @@
   (version "2")
   (url "http://kyuba.org/")
 
-  (libraries "duat")
+  (libraries "duat" "sievert")
 
   (code "duat-client")
 
