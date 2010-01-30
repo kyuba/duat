@@ -82,7 +82,7 @@ struct dfs_directory *dfs_mk_directory (struct dfs_directory *dir, char *name)
     initialise_dfs_node_common(&(rv->c));
     rv->c.length = (int_64)sizeof(struct dfs_directory);
     rv->c.type = dft_directory;
-    rv->c.name = (char *)str_immutable_unaligned(name);
+    rv->c.name = (char *)str_immutable(name);
 
     if (dir != (struct dfs_directory *)0)
     {
@@ -107,7 +107,7 @@ struct dfs_file *dfs_mk_file (struct dfs_directory *dir, char *name, char *tfile
 
     initialise_dfs_node_common(&(rv->c));
     rv->c.type = dft_file;
-    rv->c.name = (char *)str_immutable_unaligned(name);
+    rv->c.name = (char *)str_immutable(name);
 
     rv->data = tbuffer;
     rv->c.length = tlength;
@@ -129,8 +129,8 @@ struct dfs_symlink *dfs_mk_symlink (struct dfs_directory *dir, char *name, char 
     initialise_dfs_node_common(&(rv->c));
     rv->c.length = (int_64)sizeof(struct dfs_symlink);
     rv->c.type = dft_symlink;
-    rv->c.name = (char *)str_immutable_unaligned(name);
-    rv->symlink = (char *)str_immutable_unaligned(linkcontent);
+    rv->c.name = (char *)str_immutable(name);
+    rv->symlink = (char *)str_immutable(linkcontent);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
@@ -147,7 +147,7 @@ struct dfs_device *dfs_mk_device (struct dfs_directory *dir, char *name, enum df
     initialise_dfs_node_common(&(rv->c));
     rv->c.length = (int_64)sizeof(struct dfs_device);
     rv->c.type = dft_device;
-    rv->c.name = (char *)str_immutable_unaligned(name);
+    rv->c.name = (char *)str_immutable(name);
     rv->type = type;
     rv->majour = majour;
     rv->minor = minor;
@@ -167,7 +167,7 @@ struct dfs_socket *dfs_mk_pipe (struct dfs_directory *dir, char *name)
     initialise_dfs_node_common(&(rv->c));
     rv->c.length = (int_64)sizeof(struct dfs_socket);
     rv->c.type = dft_pipe;
-    rv->c.name = (char *)str_immutable_unaligned(name);
+    rv->c.name = (char *)str_immutable(name);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
@@ -184,7 +184,7 @@ struct dfs_socket *dfs_mk_socket (struct dfs_directory *dir, char *name)
     initialise_dfs_node_common(&(rv->c));
     rv->c.length = (int_64)sizeof(struct dfs_socket);
     rv->c.type = dft_socket;
-    rv->c.name = (char *)str_immutable_unaligned(name);
+    rv->c.name = (char *)str_immutable(name);
 
     tree_add_node_string_value (dir->nodes, name, (void *)rv);
 
