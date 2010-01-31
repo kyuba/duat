@@ -30,7 +30,7 @@
 #include <curie/sexpr.h>
 #include <curie/multiplex.h>
 #include <curie/memory.h>
-#include <curie/shell.h>
+#include <sievert/shell.h>
 #include <duat/9p-client.h>
 
 enum op
