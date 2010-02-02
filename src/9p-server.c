@@ -30,6 +30,7 @@
 #include <curie/multiplex.h>
 #include <curie/network.h>
 #include <curie/memory.h>
+#include <sievert/tree.h>
 
 static void Tattach (struct d9r_io *io, int_16 tag, int_32 fid, int_32 afid,
                      char *uname, char *aname)
