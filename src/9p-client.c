@@ -233,6 +233,7 @@ static void Rread   (struct d9r_io *io, int_16 tag, int_32 count, int_8 *data)
 
         if (md != (struct d9r_tag_metadata *)0)
         {
+            status->offset = noff;
             md->aux = (void *)status;
         }
     }
