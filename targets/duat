@@ -1,0 +1,9 @@
+TYPE=library
+LIBRARIES=curie sievert
+NAME=Duat
+DESCRIPTION="9P2000 I/O library"
+VERSION=7
+URL=http://kyuba.org/
+CODE="9p 9p-server duat-filesystem 9p-client"
+HEADERS="9p 9p-server filesystem 9p-client"
+DOCUMENTATION=

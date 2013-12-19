@@ -1,0 +1,10 @@
+TYPE=programme
+LIBRARIES="curie sievert duat"
+NAME=d9c
+DESCRIPTION="Duat client programme"
+VERSION=2
+URL=http://kyuba.org/
+CODE=duat-client
+HEADERS=
+DOCUMENTATION=d9c
+BOOTSTRAP=YES
