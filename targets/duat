@@ -1,5 +1,5 @@
 TYPE=library
-LIBRARIES=curie sievert
+LIBRARIES="curie sievert"
 NAME=Duat
 DESCRIPTION="9P2000 I/O library"
 VERSION=7
