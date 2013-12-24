@@ -34,7 +34,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  *
- * \see Projct Documentation: http://ef.gy/documentation/duat
+ * \see Project Documentation: http://ef.gy/documentation/duat
  * \see Project Source Code: http://git.becquerel.org/kyuba/duat.git
  */
 
