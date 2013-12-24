@@ -21,6 +21,7 @@ tests/*
 !tests/reference
 !tests/reference/*
 
-documentation/doxygen
+documentation/html
+documentation/man
 
 .build

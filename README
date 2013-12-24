@@ -1,8 +1,8 @@
-###- QUICK AND DIRTY: COMPILATION AND INSTALLATION -############################
-  You'll need curie-7, including icemake...
+# QUICK AND DIRTY: COMPILATION AND INSTALLATION ################################
 
-    $ icemake -dif /usr
+You'll need curie-12 and the usual tools to compile things
 
+    $ make PREFIX=/usr install
 
 ################################################################################
 
@@ -16,33 +16,20 @@ NOTE.2:
   credits (the CREDITS file).
 
 
-###- DETAILS -##################################################################
+# DETAILS #####################################################################
 
-Compilation:
-  Make sure you have libcurie-4 or higher installed, then:
+## Compilation: ###############################################################
 
-    $ icemake
+Make sure you have libcurie-12 or higher installed, then:
 
-  A number of compilation options are available if you run into issues. To see
-  them, use:
+    $ make PREFIX=/usr
 
-    $ icemake --help
+## Installation: ##############################################################
 
-Installation:
-  use this command to install regularly (for example into /usr, in the example):
+Use this command to install regularly (for example into /usr, in the example):
 
-    $ icemake -dif /some/prefix
+    $ make PREFIX=/usr install
 
-Linking against libduat without using icemake:
-  Use pkg-config to retrieve the flags needed to link with libduat:
+# CONTACT: ####################################################################
 
-    $ pkg-config --cflags --libs libduat
-
-  For the hosted variant of libcurie, use:
-
-    $ pkg-config --cflags --libs libduat-hosted
-
-  Check pkg-config's documentation for more details.
-
-CONTACT:
-  Best bet is IRC: freenode #kyuba
+Best bet is IRC: freenode #kyuba
