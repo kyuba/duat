@@ -1,35 +1,51 @@
-# QUICK AND DIRTY: COMPILATION AND INSTALLATION ################################
+# DUAT-7 #######################################################################
 
-You'll need curie-12 and the usual tools to compile things
-
-    $ make PREFIX=/usr install
-
-################################################################################
-
+Duat is an asynchronous 9P2000(.u) I/O library based on Curie -
+http://ef.gy/documentation/curie - which tries to stay as close to the protocol
+as possible without needlessly complicating things for users of the library.
+The library is written in the Curie dialect of C and has a very small disk and
+memory footprint.
 
 NOTE:
-  This is an early version of this library; It has not been tested properly, and
-  is rather intended as an API snapshot.
+Please take note of the library licence (the COPYING file), as well as the
+credits (the CREDITS file).
 
-NOTE.2:
-  Please take note of the library licence (the COPYING file), as well as the
-  credits (the CREDITS file).
+# DETAILS ######################################################################
 
+## Getting the source code: ####################################################
 
-# DETAILS #####################################################################
+Duat is available under a very permissive MIT/X-style licence. The master
+source repository is at http://git.becquerel.org/kyuba/duat.git - a public
+GitHub mirror is at https://github.com/jyujin/duat
 
-## Compilation: ###############################################################
+Recent releases are posted on GitHub at https://github.com/jyujin/duat/releases
+and, while canonical tarballs are no longer provided for the library, release
+tarballs (and ZIP files) are available in the git frontends.
+
+## Compilation: ################################################################
 
 Make sure you have libcurie-12 or higher installed, then:
 
     $ make PREFIX=/usr
 
-## Installation: ##############################################################
+NOTE: As of the time of this writing, Curie-12 has not been released yet; to
+compile Duat you would thus need the current Git version of Curie. Once Curie-12
+comes out you should be able to use that version instead if you're not too keen
+on using sources straight out of version control.
 
-Use this command to install regularly (for example into /usr, in the example):
+## Installation: ###############################################################
+
+Use this command to install the library (for example into /usr with the PREFIX=
+parameter):
 
     $ make PREFIX=/usr install
 
-# CONTACT: ####################################################################
+# CONTACT: #####################################################################
 
-Best bet is IRC: freenode \#kyuba
+Your best bet to get help with the library is by hopping onto the freenode IRC
+server and joining the \#kyuba channel.
+
+Alternatively, you could email the lead developer at: magnus@ef.gy
+
+Check out the blog at http://ef.gy/ while you're at it - who knows, it might
+be fun ;D.
