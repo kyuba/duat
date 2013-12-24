@@ -40,6 +40,17 @@ parameter):
 
     $ make PREFIX=/usr install
 
+## Documentation: ##############################################################
+
+Duat uses Doxygen for documentation. To compile the documentation, issue this
+command on a shell:
+
+    $ doxygen doxyfile
+
+After the command has run you can find the generated documentation in the
+documentation/html directory. The documentation for the current git version is
+available at: http://ef.gy/documentation/duat
+
 # CONTACT: #####################################################################
 
 Your best bet to get help with the library is by hopping onto the freenode IRC
