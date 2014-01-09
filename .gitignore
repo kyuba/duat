@@ -23,5 +23,6 @@ tests/*
 
 documentation/html
 documentation/man
+documentation/*.tag
 
 .build

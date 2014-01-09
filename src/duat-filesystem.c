@@ -1,6 +1,9 @@
 /**\file
  * \brief Duat VFS client implementation
  *
+ * Contains some optional, generic, virtual file system code to help reduce the
+ * complexity of writing synthetic filesystems using duat.
+ *
  * \copyright
  * Copyright (c) 2008-2013, Kyuba Project Members
  * \copyright
@@ -34,6 +37,11 @@
 #include <sievert/tree.h>
 #include <duat/filesystem.h>
 
+/**\brief Default buffer size
+ *
+ * All typical buffers in this file use this particular buffer size to store
+ * temporary data.
+ */
 #define BUFFERSIZE 4096
 
 struct dfs *dfs_create (void (*close)(struct d9r_io *, void *), void *aux)
@@ -233,15 +241,20 @@ int_32 dfs_get_group    (char *group) {
     return (int_32)0;
 }
 
+/**\brief /etc/passwd fields
+ *
+ * Contains the possible fields in the /etc/passwd file. This enumeration is
+ * used to parse that file as part of the dfs_update_ids() function.
+ */
 enum pwd_field
 {
-    pf_account = 0,
-    pf_password = 1,
-    pf_uid = 2,
-    pf_gid = 3,
-    pf_comment = 4,
-    pf_dir = 5,
-    pf_shell = 6,
+    pf_account = 0,  /**< First field: Login name */
+    pf_password = 1, /**< Second field: Password */
+    pf_uid = 2,      /**< Third field: User ID */
+    pf_gid = 3,      /**< Fourth field: Group ID */
+    pf_comment = 4,  /**< Fifth field: Account comment */
+    pf_dir = 5,      /**< Sixth field: Home directory */
+    pf_shell = 6     /**< Secenth field: Preferred shell */
 };
 
 static void on_read_pwd (struct io *in, void *aux)
@@ -301,12 +314,17 @@ static void on_read_pwd (struct io *in, void *aux)
     }
 }
 
+/**\brief /etc/group fields
+ *
+ * Contains the possible fields in the /etc/group file. This enumeration is used
+ * to parse that file as part of the dfs_update_ids() function.
+ */
 enum grp_field
 {
-    gf_name = 0,
-    gf_password = 1,
-    gf_gid = 2,
-    gf_ulist = 3
+    gf_name = 0,     /**< First field: Group name */
+    gf_password = 1, /**< Second field: Group password */
+    gf_gid = 2,      /**< Third field: Group ID */
+    gf_ulist = 3     /**< Fourth field: Group members' login names */
 };
 
 static void on_read_grp (struct io *in, void *aux)
