@@ -1,6 +1,9 @@
 /**\file
  * \brief Duat 9P implementation
  *
+ * Contains the functions to synthesise 9P2000(.u) messages and to multiplex and
+ * parse 9P2000(.u) messages from streams.
+ *
  * \copyright
  * Copyright (c) 2008-2014, Kyuba Project Members
  * \copyright
@@ -39,37 +42,42 @@ struct io_element {
     void *data;
 };
 
-/* read these codes in the plan9 sourcecode... guess there's not much of an
-   alternative to look these codes up. */
+/**\brief Request codes
+ *
+ * found these codes in the plan9 sourcecode... guess there's not much of an
+ * alternative to look these codes up.
+ */
 enum request_code {
-    Tversion = 100,
-    Rversion = 101,
-    Tauth    = 102,
-    Rauth    = 103,
-    Tattach  = 104,
-    Rattach  = 105,
-/*    Terror   = 106, */
-    Rerror   = 107,
-    Tflush   = 108,
-    Rflush   = 109,
-    Twalk    = 110,
-    Rwalk    = 111,
-    Topen    = 112,
-    Ropen    = 113,
-    Tcreate  = 114,
-    Rcreate  = 115,
-    Tread    = 116,
-    Rread    = 117,
-    Twrite   = 118,
-    Rwrite   = 119,
-    Tclunk   = 120,
-    Rclunk   = 121,
-    Tremove  = 122,
-    Rremove  = 123,
-    Tstat    = 124,
-    Rstat    = 125,
-    Twstat   = 126,
-    Rwstat   = 127,
+    Tversion = 100, /**< Protocol negotiation request. */
+    Rversion = 101, /**< Protocol negotation reply. */
+    Tauth    = 102, /**< Authentication request. */
+    Rauth    = 103, /**< Authentication reply. */
+    Tattach  = 104, /**< Set filesystem root request. */
+    Rattach  = 105, /**< Set filesystem root reply. */
+    Terror   = 106, /**< Not used; this is what the code to request an error
+                     *   would look like, if it existed. */
+    Rerror   = 107, /**< Indicates that trying to reply to a request resulted in
+                     *   an error. */
+    Tflush   = 108, /**< Abort message request. */
+    Rflush   = 109, /**< Abort message reply. */
+    Twalk    = 110, /**< Change directory request. */
+    Rwalk    = 111, /**< Change directory reply. */
+    Topen    = 112, /**< Open file or directory request. */
+    Ropen    = 113, /**< Open file or directory reply. */
+    Tcreate  = 114, /**< Create file or directory request. */
+    Rcreate  = 115, /**< Create file or directory reply. */
+    Tread    = 116, /**< Read part of file or directory request. */
+    Rread    = 117, /**< Read part of file or directory reply. */
+    Twrite   = 118, /**< Write to file request. */
+    Rwrite   = 119, /**< Write to file reply. */
+    Tclunk   = 120, /**< Close file or directory request. */
+    Rclunk   = 121, /**< Close file or directory reply. */
+    Tremove  = 122, /**< Unlink file or directory request. */
+    Rremove  = 123, /**< Unlink file or directory reply. */
+    Tstat    = 124, /**< Obtain information about file or directory; request. */
+    Rstat    = 125, /**< Obtain information about file or directory; reply. */
+    Twstat   = 126, /**< Write information about file or directory; request.*/
+    Rwstat   = 127  /**< Write information about file or directory; reply. */
 };
 
 struct d9r_io *d9r_open_io (struct io *in, struct io *out) {
@@ -616,9 +624,30 @@ struct d9r_fid_metadata *
     return (struct d9r_fid_metadata *)0;
 }
 
+/**\brief 9P2000 version string
+ *
+ * The default version string used by 9P2000.
+ */
 #define VERSION_STRING_9P2000 "9P2000"
+
+/**\brief 9P2000 version string size
+ *
+ * Size of the VERSION_STRING_9P2000 constant.
+ */
 #define VERSION_STRING_LENGTH 6
+
+/**\brief Minimum supported message size
+ *
+ * 9P2000 lets the client specify a desired message size; this is the minimum
+ * size such a message size has to be.
+ */
 #define MINMSGSIZE            0x2000
+
+/**\brief Maximum supported message size
+ *
+ * 9P2000 lets the client specify a desired message size; this is the maximum
+ * size supported by the library.
+ */
 #define MAXMSGSIZE            0x2000
 
 static void mx_on_read_9p (struct io *in, void *d) {

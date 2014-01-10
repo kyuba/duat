@@ -1,6 +1,8 @@
 /**\file
  * \brief Duat 9P client implementation
  *
+ * Contains the implementation of Duat's base 9P2000 client.
+ *
  * \copyright
  * Copyright (c) 2008-2014, Kyuba Project Members
  * \copyright
@@ -32,22 +34,30 @@
 #include <curie/io.h>
 #include <duat/9p-client.h>
 
+/**\brief Filesystem root FID
+ *
+ * The FID for the filesystem root node.
+ */
 #define ROOT_FID 1
 
+/**\brief 9P multiplexer status
+ *
+ * Used to specify the status of a connection managed by Duat's multiplexer.
+ */
 enum d9c_status_code
 {
-    d9c_attaching,
-    d9c_walking_read,
-    d9c_opening_read,
-    d9c_ready_read,
-    d9c_walking_create,
-    d9c_walking_write,
-    d9c_opening_write,
-    d9c_ready_write,
-    d9c_ready,
-    d9c_ready_write_working,
-    d9c_closing_write,
-    d9c_error
+    d9c_attaching,           /**< Currently attaching.*/
+    d9c_walking_read,        /**< Currently walking; will read afterwards. */
+    d9c_opening_read,        /**< Done walking, now opening file to read. */
+    d9c_ready_read,          /**< Currently able to read from file. */
+    d9c_walking_create,      /**< Currently walking; will create afterwards. */
+    d9c_walking_write,       /**< Currently walking; will write afterwards. */
+    d9c_opening_write,       /**< Done walking, now opening file to write. */
+    d9c_ready_write,         /**< FID is open for writing. */
+    d9c_ready,               /**< Connection is ready for additional data. */
+    d9c_ready_write_working, /**< Currently trying to write data. */
+    d9c_closing_write,       /**< Closing FID after writing. */
+    d9c_error                /**< An error occured. */
 };
 
 struct d9c_status
