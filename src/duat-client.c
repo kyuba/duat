@@ -198,6 +198,14 @@ static void on_d9_close (struct d9r_io *io, void *aux)
     cexit (5);
 }
 
+/**\brief Main entry point
+ *
+ * This is the function called by the Curie bootstrap code. It initialises the
+ * multiplexer after figuring out what you're trying to do by parsing the
+ * command line arguments.
+ *
+ * \returns Zero on success, nonzero otherwise.
+ */
 int cmain()
 {
     char *i_socket = (char *)0;
