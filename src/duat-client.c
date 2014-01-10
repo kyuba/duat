@@ -7,7 +7,7 @@
  * This programme is heavily influenced by the ixpc(1) 9P client programme.
  *
  * \copyright
- * Copyright (c) 2008-2013, Kyuba Project Members
+ * Copyright (c) 2008-2014, Kyuba Project Members
  * \copyright
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
