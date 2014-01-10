@@ -4,6 +4,8 @@
  * Implements the 'd9c' programme, which can connect to 9P servers and query
  * information from them.
  *
+ * This programme is heavily influenced by the ixpc(1) 9P client programme.
+ *
  * \copyright
  * Copyright (c) 2008-2013, Kyuba Project Members
  * \copyright
@@ -36,14 +38,19 @@
 #include <sievert/shell.h>
 #include <duat/9p-client.h>
 
+/**\brief Programme operation mode
+ *
+ * Which operation to perform on a given path. Set after parsing the command
+ * line arguments to match the selection there.
+ */
 enum op
 {
-    op_nop,
-    op_cat,
-    op_ls,
-    op_lsd,
-    op_write,
-    op_create,
+    op_nop,   /**< Do nothing */
+    op_cat,   /**< Print the named resource's contents */
+    op_ls,    /**< List directory contents (names only) */
+    op_lsd,   /**< List directory contents in greater detail */
+    op_write, /**< Write to a file; uses the data you enter on stdin */
+    op_create /**< Create a file with the contents of stdin */
 };
 
 static char *i_path           = (char *)0;
@@ -54,12 +61,29 @@ static struct io *stdin       = (struct io *)0;
 static struct sexpr_io *stdio = (struct sexpr_io *)0;
 static struct d9r_io *d9io    = (struct d9r_io *)0;
 
+/**\brief Defines sexpr symbol "sym_directory"
+ *
+ * Defines sym_directory, a symbol that is used with the "lsd" option to
+ * distinguish between directories and files.
+ */
 define_symbol (sym_directory, "directory");
+
+/**\brief Defines sexpr symbol "sym_file"
+ *
+ * Defines sym_file, a symbol that is used with the "lsd" option to distinguish
+ * between directories and files.
+ */
 define_symbol (sym_file,      "file");
+
+/**\brief Usage summary
+ *
+ * Echoed to stdout in the print_help() function when no valid operation has
+ * been selected.
+ */
+#define help "d9c -s <address> (read|write|create|ls|lsd) <path>\n"
 
 static int print_help ()
 {
-#define help "d9c -s <address> (read|write|create|ls|lsd) <path>\n"
     struct io *out = io_open (1);
     if (out != (struct io *)0)
     {
