@@ -16,22 +16,21 @@ credits (the CREDITS file).
 
 Duat is available under a very permissive MIT/X-style licence. The master
 source repository is at http://git.becquerel.org/kyuba/duat.git - a public
-GitHub mirror is at https://github.com/jyujin/duat
+GitHub mirror is at https://github.com/kyuba/duat
 
-Recent releases are posted on GitHub at https://github.com/jyujin/duat/releases
+Recent releases are posted on GitHub at https://github.com/kyuba/duat/releases
 and, while canonical tarballs are no longer provided for the library, release
 tarballs (and ZIP files) are available in the git frontends.
+
+Note that, instead of following the next two sections, you may also just check
+out the duat repository as a subdirectory of your Curie sources and compile the
+library as part of Curie. More details on that are in Curie's README.
 
 ## Compilation: ################################################################
 
 Make sure you have libcurie-12 or higher installed, then:
 
     $ make PREFIX=/usr
-
-NOTE: As of the time of this writing, Curie-12 has not been released yet; to
-compile Duat you would thus need the current Git version of Curie. Once Curie-12
-comes out you should be able to use that version instead if you're not too keen
-on using sources straight out of version control.
 
 ## Installation: ###############################################################
 
